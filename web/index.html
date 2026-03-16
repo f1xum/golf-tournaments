@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Turniere Bayern</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Golf Turniere Bayern</h1>
+        <p class="subtitle">Alle Turniere in Bayern auf einen Blick</p>
+    </header>
+
+    <main>
+        <!-- View toggle -->
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="calendar" id="viewCalendar">Kalender</button>
+            <button class="view-btn" data-view="list" id="viewList">Liste</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters" id="filters">
+            <button class="filter-toggle" id="filterToggle">
+                Filter <span class="filter-count" id="filterCount"></span>
+            </button>
+
+            <div class="filter-panel" id="filterPanel">
+                <div class="filter-group">
+                    <label>Region</label>
+                    <select id="regionFilter">
+                        <option value="">Alle Regionen</option>
+                        <option value="Oberbayern">Oberbayern</option>
+                        <option value="Niederbayern">Niederbayern</option>
+                        <option value="Schwaben">Schwaben</option>
+                        <option value="Oberpfalz">Oberpfalz</option>
+                        <option value="Oberfranken">Oberfranken</option>
+                        <option value="Mittelfranken">Mittelfranken</option>
+                        <option value="Unterfranken">Unterfranken</option>
+                        <option value="München">München</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Spielform</label>
+                    <select id="formatFilter">
+                        <option value="">Alle Formate</option>
+                        <option value="stableford">Stableford</option>
+                        <option value="strokeplay">Zählspiel</option>
+                        <option value="scramble">Scramble</option>
+                        <option value="matchplay">Lochspiel</option>
+                        <option value="best_ball">Best Ball</option>
+                        <option value="texas_scramble">Texas Scramble</option>
+                        <option value="chapman">Chapman</option>
+                        <option value="vierer">Vierer</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Nenngeld</label>
+                    <div class="filter-chips" id="feeFilter">
+                        <button class="chip active" data-value="all">Alle</button>
+                        <button class="chip" data-value="0">Kostenlos</button>
+                        <button class="chip" data-value="30">Bis 30 €</button>
+                        <button class="chip" data-value="50">Bis 50 €</button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>Freie Plätze</label>
+                    <div class="filter-chips" id="slotsFilter">
+                        <button class="chip active" data-value="all">Alle</button>
+                        <button class="chip" data-value="yes">Verfügbar</button>
+                    </div>
+                </div>
+
+                <button class="reset-btn" id="resetFilters">Filter zurücksetzen</button>
+            </div>
+        </div>
+
+        <!-- Calendar view -->
+        <div class="calendar-view" id="calendarView">
+            <div class="week-nav">
+                <button id="prevWeek">&larr;</button>
+                <span id="weekLabel">KW 12</span>
+                <button id="nextWeek">&rarr;</button>
+                <button class="today-btn" id="todayBtn">Heute</button>
+            </div>
+            <div class="week-board" id="weekBoard">
+                <!-- 7 day columns rendered by JS -->
+            </div>
+        </div>
+
+        <!-- List view -->
+        <div class="list-view hidden" id="listView">
+            <div class="results-header">
+                <span id="resultCount">Lade...</span>
+                <select id="sortBy">
+                    <option value="date_asc">Datum (aufsteigend)</option>
+                    <option value="date_desc">Datum (absteigend)</option>
+                    <option value="fee_asc">Nenngeld (aufsteigend)</option>
+                </select>
+            </div>
+
+            <div class="tournament-list" id="tournamentList">
+                <!-- Cards rendered by JS -->
+            </div>
+
+            <div class="load-more hidden" id="loadMore">
+                <button id="loadMoreBtn">Mehr laden</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
