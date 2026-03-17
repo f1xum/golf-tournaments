@@ -458,15 +458,25 @@ function initEvents() {
         if (e.key === 'ArrowRight') { currentWeekStart.setDate(currentWeekStart.getDate() + 7); render(); }
     });
 
-    // Swipe on mobile for week nav
+    // Swipe on mobile for week nav (only when scroll is at edge)
     let touchStartX = 0;
+    let touchStartScrollLeft = 0;
     const board = document.getElementById('weekBoard');
-    board.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    board.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+        touchStartScrollLeft = board.scrollLeft;
+    }, { passive: true });
     board.addEventListener('touchend', e => {
         const diff = e.changedTouches[0].clientX - touchStartX;
-        if (Math.abs(diff) > 100) {
-            if (diff > 0) { currentWeekStart.setDate(currentWeekStart.getDate() - 7); }
-            else { currentWeekStart.setDate(currentWeekStart.getDate() + 7); }
+        if (Math.abs(diff) < 100) return;
+        // Only change week if the board was already at the scroll edge
+        const atLeftEdge = touchStartScrollLeft <= 0;
+        const atRightEdge = touchStartScrollLeft >= board.scrollWidth - board.clientWidth - 5;
+        if (diff > 0 && atLeftEdge) {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            render();
+        } else if (diff < 0 && atRightEdge) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
             render();
         }
     }, { passive: true });
