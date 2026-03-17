@@ -7,32 +7,60 @@ export interface Filters {
   format: string;
   fee: string;
   slots: string;
+  hcp: string;
+  holes: string;
 }
+
+export const DEFAULT_FILTERS: Filters = {
+  region: '',
+  format: '',
+  fee: 'all',
+  slots: 'all',
+  hcp: 'all',
+  holes: 'all',
+};
 
 interface Props {
   filters: Filters;
   onChange: (filters: Filters) => void;
 }
 
+function ChipGroup({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+            value === opt.value
+              ? 'bg-accent text-white border-accent'
+              : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function TournamentFilters({ filters, onChange }: Props) {
-  const activeCount =
-    (filters.region ? 1 : 0) +
-    (filters.format ? 1 : 0) +
-    (filters.fee !== 'all' ? 1 : 0) +
-    (filters.slots !== 'all' ? 1 : 0);
+  const activeCount = Object.entries(filters).filter(([k, v]) => {
+    if (k === 'region' || k === 'format') return v !== '';
+    return v !== 'all';
+  }).length;
 
   const update = (partial: Partial<Filters>) =>
     onChange({ ...filters, ...partial });
-
-  const reset = () =>
-    onChange({ region: '', format: '', fee: 'all', slots: 'all' });
-
-  const feeOptions = [
-    { value: 'all', label: 'Alle' },
-    { value: '0', label: 'Kostenlos' },
-    { value: '30', label: 'Bis 30 €' },
-    { value: '50', label: 'Bis 50 €' },
-  ];
 
   return (
     <div className="mb-4">
@@ -81,55 +109,72 @@ export default function TournamentFilters({ filters, onChange }: Props) {
             </select>
           </div>
 
-          {/* Fee chips */}
+          {/* Fee */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Nenngeld
             </label>
-            <div className="flex flex-wrap gap-2">
-              {feeOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => update({ fee: opt.value })}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                    filters.fee === opt.value
-                      ? 'bg-accent text-white border-accent'
-                      : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: '0', label: 'Kostenlos' },
+                { value: '30', label: 'Bis 30 €' },
+                { value: '50', label: 'Bis 50 €' },
+              ]}
+              value={filters.fee}
+              onChange={(v) => update({ fee: v })}
+            />
           </div>
 
-          {/* Slots chips */}
+          {/* Slots */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Freie Plätze
             </label>
-            <div className="flex gap-2">
-              {[
+            <ChipGroup
+              options={[
                 { value: 'all', label: 'Alle' },
                 { value: 'yes', label: 'Verfügbar' },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => update({ slots: opt.value })}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                    filters.slots === opt.value
-                      ? 'bg-accent text-white border-accent'
-                      : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+              ]}
+              value={filters.slots}
+              onChange={(v) => update({ slots: v })}
+            />
+          </div>
+
+          {/* HCP-relevant */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              HCP-relevant
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: 'yes', label: 'Nur HCP-relevant' },
+                { value: 'no', label: 'Nicht HCP-relevant' },
+              ]}
+              value={filters.hcp}
+              onChange={(v) => update({ hcp: v })}
+            />
+          </div>
+
+          {/* Holes */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Löcher
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: '9', label: '9 Löcher' },
+                { value: '18', label: '18 Löcher' },
+              ]}
+              value={filters.holes}
+              onChange={(v) => update({ holes: v })}
+            />
           </div>
 
           <button
-            onClick={reset}
+            onClick={() => onChange(DEFAULT_FILTERS)}
             className="w-full py-2 text-sm text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50"
           >
             Filter zurücksetzen

@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Tournament, GolfClub } from '@/lib/types';
-import TournamentFilters, { Filters } from '@/components/tournament-filters';
+import { extractHoles } from '@/lib/tournament-utils';
+import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
 
@@ -13,15 +14,12 @@ interface Props {
 
 export default function TurniereClient({ tournaments, clubs }: Props) {
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
-  const [filters, setFilters] = useState<Filters>({
-    region: '',
-    format: '',
-    fee: 'all',
-    slots: 'all',
-  });
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
 
   const filtered = useMemo(() => {
     return tournaments.filter((t) => {
+      const raw = t.raw_data || {};
+
       // Region
       if (filters.region) {
         const club = clubs[t.club_id || ''];
@@ -37,10 +35,18 @@ export default function TurniereClient({ tournaments, clubs }: Props) {
       }
       // Slots
       if (filters.slots === 'yes') {
-        const raw = t.raw_data || {};
         if (raw.free_slots !== null && raw.free_slots !== undefined && raw.free_slots <= 0)
           return false;
       }
+      // HCP-relevant
+      if (filters.hcp === 'yes' && !raw.hcp_relevant) return false;
+      if (filters.hcp === 'no' && raw.hcp_relevant) return false;
+      // Holes
+      if (filters.holes !== 'all') {
+        const holes = extractHoles(t.raw_data, t.description);
+        if (holes !== parseInt(filters.holes)) return false;
+      }
+
       return true;
     });
   }, [tournaments, clubs, filters]);

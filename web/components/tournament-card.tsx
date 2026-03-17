@@ -1,5 +1,6 @@
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
+import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
 
 interface Props {
   tournament: Tournament;
@@ -14,6 +15,9 @@ export default function TournamentCard({ tournament: t, club }: Props) {
     t.date_end && t.date_end !== t.date_start
       ? ` – ${formatDateFull(t.date_end)}`
       : '';
+
+  const holes = extractHoles(t.raw_data, t.description);
+  const meldeschluss = formatMeldeschluss(t.raw_data);
 
   const slotsText =
     raw.max_participants
@@ -44,11 +48,18 @@ export default function TournamentCard({ tournament: t, club }: Props) {
         <span className="text-sm font-semibold text-accent whitespace-nowrap">
           {dateStr}{endStr}
         </span>
-        {formatLabel && (
-          <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded font-medium ml-2">
-            {formatLabel}
-          </span>
-        )}
+        <div className="flex gap-1.5 ml-2 flex-shrink-0">
+          {formatLabel && (
+            <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded font-medium">
+              {formatLabel}
+            </span>
+          )}
+          {holes && (
+            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
+              {holes}L
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Name & club */}
@@ -57,7 +68,7 @@ export default function TournamentCard({ tournament: t, club }: Props) {
         {club?.name}{club?.city ? ` · ${club.city}` : ''}
       </div>
 
-      {/* Details */}
+      {/* Details row */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
         {t.entry_fee != null && (
           <div>
@@ -72,9 +83,16 @@ export default function TournamentCard({ tournament: t, club }: Props) {
           </div>
         )}
         {raw.hcp_relevant && (
-          <span className="font-medium text-gray-900">HCP-relevant</span>
+          <span className="font-medium text-accent">HCP-relevant</span>
         )}
       </div>
+
+      {/* Meldeschluss */}
+      {meldeschluss && (
+        <div className="mt-2 text-xs text-gray-400">
+          Meldeschluss: {meldeschluss}
+        </div>
+      )}
 
       {/* Prizes */}
       {prizeText && (

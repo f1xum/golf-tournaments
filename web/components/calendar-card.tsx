@@ -1,5 +1,6 @@
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatToLabel } from '@/lib/utils';
+import { extractHoles } from '@/lib/tournament-utils';
 
 interface Props {
   tournament: Tournament;
@@ -9,6 +10,7 @@ interface Props {
 export default function CalendarCard({ tournament: t, club }: Props) {
   const raw = t.raw_data || {};
   const formatLabel = formatToLabel(t.format);
+  const holes = extractHoles(t.raw_data, t.description);
 
   const Wrapper = t.source_url ? 'a' : 'div';
   const linkProps = t.source_url
@@ -28,14 +30,24 @@ export default function CalendarCard({ tournament: t, club }: Props) {
             {formatLabel}
           </span>
         )}
+        {holes && (
+          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
+            {holes}L
+          </span>
+        )}
         {t.entry_fee != null && (
           <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">
             {t.entry_fee} €
           </span>
         )}
+        {raw.hcp_relevant && (
+          <span className="px-1.5 py-0.5 bg-accent-light text-accent rounded font-medium">
+            HCP
+          </span>
+        )}
         {raw.prizes && raw.prizes.length > 0 && (
           <span className="px-1.5 py-0.5 bg-prize-bg text-prize-text rounded">
-            🏆 Preise
+            🏆
           </span>
         )}
         {raw.free_slots != null && raw.max_participants != null && (
