@@ -9,6 +9,10 @@ export interface Filters {
   slots: string;
   hcp: string;
   holes: string;
+  gender: string;
+  visitors: string;
+  age: string;
+  sponsored: string;
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -18,6 +22,10 @@ export const DEFAULT_FILTERS: Filters = {
   slots: 'all',
   hcp: 'all',
   holes: 'all',
+  gender: 'all',
+  visitors: 'all',
+  age: 'all',
+  sponsored: 'all',
 };
 
 interface Props {
@@ -58,6 +66,7 @@ export default function TournamentFilters({ filters, onChange }: Props) {
     if (k === 'region' || k === 'format') return v !== '';
     return v !== 'all';
   }).length;
+
 
   const update = (partial: Partial<Filters>) =>
     onChange({ ...filters, ...partial });
@@ -170,6 +179,70 @@ export default function TournamentFilters({ filters, onChange }: Props) {
               ]}
               value={filters.holes}
               onChange={(v) => update({ holes: v })}
+            />
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Geschlecht
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: 'herren', label: 'Herren' },
+                { value: 'damen', label: 'Damen' },
+                { value: 'mixed', label: 'Mixed' },
+              ]}
+              value={filters.gender}
+              onChange={(v) => update({ gender: v })}
+            />
+          </div>
+
+          {/* Visitors */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Gäste erlaubt
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: 'yes', label: 'Gäste willkommen' },
+              ]}
+              value={filters.visitors}
+              onChange={(v) => update({ visitors: v })}
+            />
+          </div>
+
+          {/* Age */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Altersklasse
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: 'jugend', label: 'Jugend' },
+                { value: 'senioren', label: 'Senioren' },
+                { value: 'keine', label: 'Keine Einschränkung' },
+              ]}
+              value={filters.age}
+              onChange={(v) => update({ age: v })}
+            />
+          </div>
+
+          {/* Sponsored / Prizes */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Preise / Sponsoring
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: 'yes', label: 'Mit Preisen' },
+              ]}
+              value={filters.sponsored}
+              onChange={(v) => update({ sponsored: v })}
             />
           </div>
 

@@ -19,7 +19,9 @@ export interface RawData {
   free_slots?: number | null;
   max_participants?: number | null;
   hcp_relevant?: boolean;
+  guests_allowed?: boolean;
   spielform?: string;
+  nenngeld_raw?: string;
   prizes?: { category: string; count: number }[];
   [key: string]: unknown;
 }

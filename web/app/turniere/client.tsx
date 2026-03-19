@@ -46,6 +46,31 @@ export default function TurniereClient({ tournaments, clubs }: Props) {
         const holes = extractHoles(t.raw_data, t.description);
         if (holes !== parseInt(filters.holes)) return false;
       }
+      // Gender
+      if (filters.gender !== 'all') {
+        const g = (t.gender || '').toLowerCase();
+        if (filters.gender === 'herren' && !g.includes('herr') && !g.includes('männ')) return false;
+        if (filters.gender === 'damen' && !g.includes('dam') && !g.includes('frauen')) return false;
+        if (filters.gender === 'mixed' && !g.includes('herren und damen') && !g.includes('mixed') && !g.includes('alle')) return false;
+      }
+      // Visitors / Guests
+      if (filters.visitors === 'yes') {
+        const nenngeld = (raw.nenngeld_raw || '').toString().toLowerCase();
+        const guestsAllowed = raw.guests_allowed ?? (nenngeld.includes('gäste') || nenngeld.includes('gast'));
+        if (!guestsAllowed) return false;
+      }
+      // Age class
+      if (filters.age !== 'all') {
+        const ac = (t.age_class || '').toLowerCase();
+        if (filters.age === 'jugend' && !ac.includes('jugend') && !ac.includes('junior')) return false;
+        if (filters.age === 'senioren' && !ac.includes('senior') && !ac.includes('ü50') && !ac.includes('ü60')) return false;
+        if (filters.age === 'keine' && ac && ac !== 'alle' && ac !== 'allgemein') return false;
+      }
+      // Sponsored / Prizes
+      if (filters.sponsored === 'yes') {
+        const prizes = raw.prizes;
+        if (!prizes || !Array.isArray(prizes) || prizes.length === 0) return false;
+      }
 
       return true;
     });

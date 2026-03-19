@@ -243,6 +243,9 @@ class PCCaddieScraper(BaseScraper):
         # Handicap relevant
         hcp_relevant = "Handicap-relevant" in text
 
+        # Guests allowed (check if Nenngeld mentions Gäste/Gast)
+        guests_allowed = bool(re.search(r"(?i)g[aä]st", nenngeld or ""))
+
         # Registration deadline
         meldeschluss = fields.get("Anmeldung bis", fields.get("Meldeschluss", ""))
 
@@ -266,6 +269,7 @@ class PCCaddieScraper(BaseScraper):
                 "max_participants": max_participants,
                 "free_slots": free_slots,
                 "hcp_relevant": hcp_relevant,
+                "guests_allowed": guests_allowed,
                 "meldeschluss": meldeschluss,
                 "nenngeld_raw": nenngeld,
                 "prizes": prizes,
