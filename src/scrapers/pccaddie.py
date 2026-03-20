@@ -243,8 +243,22 @@ class PCCaddieScraper(BaseScraper):
         # Handicap relevant
         hcp_relevant = "Handicap-relevant" in text
 
-        # Guests allowed (check if Nenngeld mentions Gäste/Gast)
-        guests_allowed = bool(re.search(r"(?i)g[aä]st", nenngeld or ""))
+        # Guests allowed - check Nenngeld field AND full page text for Gäste/Gast
+        # The Nenngeld field may not always be extracted cleanly, so we also
+        # search the full page text as a fallback
+        guests_allowed = bool(
+            re.search(r"(?i)g[aä]st", nenngeld or "")
+            or re.search(r"(?i)g[aä]st", text or "")
+        )
+
+        # Extract guest fee if available (e.g. "Gäste (DGV) zzgl. € 40" or "Gäste € 50")
+        guest_fee = None
+        guest_fee_match = re.search(
+            r"(?i)g[aä]st[^\d€]*(?:zzgl\.?\s*)?€?\s*(\d+(?:[.,]\d+)?)\s*€?",
+            nenngeld or text or "",
+        )
+        if guest_fee_match:
+            guest_fee = float(guest_fee_match.group(1).replace(",", "."))
 
         # Registration deadline
         meldeschluss = fields.get("Anmeldung bis", fields.get("Meldeschluss", ""))
@@ -270,6 +284,7 @@ class PCCaddieScraper(BaseScraper):
                 "free_slots": free_slots,
                 "hcp_relevant": hcp_relevant,
                 "guests_allowed": guests_allowed,
+                "guest_fee": guest_fee,
                 "meldeschluss": meldeschluss,
                 "nenngeld_raw": nenngeld,
                 "prizes": prizes,

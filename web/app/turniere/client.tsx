@@ -55,9 +55,7 @@ export default function TurniereClient({ tournaments, clubs }: Props) {
       }
       // Visitors / Guests
       if (filters.visitors === 'yes') {
-        const nenngeld = (raw.nenngeld_raw || '').toString().toLowerCase();
-        const guestsAllowed = raw.guests_allowed ?? (nenngeld.includes('gäste') || nenngeld.includes('gast'));
-        if (!guestsAllowed) return false;
+        if (!raw.guests_allowed) return false;
       }
       // Age class
       if (filters.age !== 'all') {

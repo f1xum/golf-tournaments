@@ -20,6 +20,7 @@ export interface RawData {
   max_participants?: number | null;
   hcp_relevant?: boolean;
   guests_allowed?: boolean;
+  guest_fee?: number | null;
   spielform?: string;
   nenngeld_raw?: string;
   prizes?: { category: string; count: number }[];
