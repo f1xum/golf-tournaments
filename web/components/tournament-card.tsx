@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
@@ -33,14 +34,9 @@ export default function TournamentCard({ tournament: t, club }: Props) {
           .join(', ')
       : null;
 
-  const Wrapper = t.source_url ? 'a' : 'div';
-  const linkProps = t.source_url
-    ? { href: t.source_url, target: '_blank' as const, rel: 'noopener noreferrer' }
-    : {};
-
   return (
-    <Wrapper
-      {...linkProps}
+    <Link
+      href={`/turniere/${t.id}`}
       className="block bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
     >
       {/* Top row */}
@@ -101,6 +97,6 @@ export default function TournamentCard({ tournament: t, club }: Props) {
           <span className="font-semibold">Preise:</span> {prizeText}
         </div>
       )}
-    </Wrapper>
+    </Link>
   );
 }

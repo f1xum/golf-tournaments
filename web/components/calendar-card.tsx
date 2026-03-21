@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatToLabel } from '@/lib/utils';
 import { extractHoles } from '@/lib/tournament-utils';
@@ -12,14 +13,9 @@ export default function CalendarCard({ tournament: t, club }: Props) {
   const formatLabel = formatToLabel(t.format);
   const holes = extractHoles(t.raw_data, t.description);
 
-  const Wrapper = t.source_url ? 'a' : 'div';
-  const linkProps = t.source_url
-    ? { href: t.source_url, target: '_blank' as const, rel: 'noopener noreferrer' }
-    : {};
-
   return (
-    <Wrapper
-      {...linkProps}
+    <Link
+      href={`/turniere/${t.id}`}
       className="block bg-white border border-gray-200 rounded-md p-2.5 hover:shadow-sm transition-shadow cursor-pointer"
     >
       <div className="font-semibold text-sm leading-snug mb-0.5">{t.name}</div>
@@ -56,6 +52,6 @@ export default function CalendarCard({ tournament: t, club }: Props) {
           </span>
         )}
       </div>
-    </Wrapper>
+    </Link>
   );
 }

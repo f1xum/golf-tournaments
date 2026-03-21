@@ -22,6 +22,7 @@ export interface RawData {
   guests_allowed?: boolean;
   guest_fee?: number | null;
   spielform?: string;
+  turnierart?: string;
   nenngeld_raw?: string;
   prizes?: { category: string; count: number }[];
   [key: string]: unknown;

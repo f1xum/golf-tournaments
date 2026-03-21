@@ -202,7 +202,9 @@ class PCCaddieScraper(BaseScraper):
         date_start = date_type(int(y), int(m), int(d))
 
         # Format from Spielform: "Einzel - Stableford"
-        spielform = fields.get("Spielform", "")
+        spielform_raw = fields.get("Spielform", "")
+        # Strip HCP info that sometimes gets appended (e.g. "/ nicht Handicap-relevant")
+        spielform = re.sub(r"\s*/\s*(?:nicht\s+)?Handicap-relevant.*", "", spielform_raw).strip()
         format_str = None
         if spielform:
             # Extract the scoring method after the dash
@@ -240,8 +242,10 @@ class PCCaddieScraper(BaseScraper):
             if num_match:
                 free_slots = int(num_match.group(1))
 
-        # Handicap relevant
-        hcp_relevant = "Handicap-relevant" in text
+        # Handicap relevant - make sure "nicht Handicap-relevant" is excluded
+        hcp_relevant = bool(
+            re.search(r"(?<!nicht\s)Handicap-relevant", text)
+        )
 
         # Guests allowed - check Nenngeld field AND full page text for Gäste/Gast
         # The Nenngeld field may not always be extracted cleanly, so we also
@@ -252,11 +256,17 @@ class PCCaddieScraper(BaseScraper):
         )
 
         # Extract guest fee if available (e.g. "Gäste (DGV) zzgl. € 40" or "Gäste € 50")
+        # Require € symbol to avoid matching dates like "19.03"
         guest_fee = None
         guest_fee_match = re.search(
-            r"(?i)g[aä]st[^\d€]*(?:zzgl\.?\s*)?€?\s*(\d+(?:[.,]\d+)?)\s*€?",
-            nenngeld or text or "",
+            r"(?i)g[aä]st[^€]*€\s*(\d+(?:[.,]\d+)?)",
+            nenngeld or "",
         )
+        if not guest_fee_match:
+            guest_fee_match = re.search(
+                r"(?i)g[aä]st[^€]*(\d+(?:[.,]\d+)?)\s*€",
+                nenngeld or "",
+            )
         if guest_fee_match:
             guest_fee = float(guest_fee_match.group(1).replace(",", "."))
 
