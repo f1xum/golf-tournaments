@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, GolfClub } from '@/lib/types';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, X, MapPin, Trophy } from 'lucide-react';
 
 interface Props {
   profile: Profile | null;
@@ -22,7 +22,13 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const homeClub = clubs.find((c) => c.id === homeClubId);
+  const homeClub = clubs.find((c) => c.id === (editing ? homeClubId : profile?.home_club_id));
+  const initials = (profile?.display_name || email)
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   function handleCancel() {
     setUsername(profile?.username ?? '');
@@ -42,7 +48,6 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Check username uniqueness if changed
     if (username && username !== profile?.username) {
       const { data: existing } = await supabase
         .from('profiles')
@@ -84,33 +89,49 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
   if (!editing) {
     return (
       <div className="space-y-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-              Profil
-            </h2>
+        {/* Profile header */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-white text-xl font-bold shrink-0">
+                {initials}
+              </div>
+              <div>
+                <div className="text-xl font-bold leading-tight">
+                  {profile?.display_name || 'Kein Name'}
+                </div>
+                {profile?.username && (
+                  <div className="text-sm text-gray-400 mt-0.5">@{profile.username}</div>
+                )}
+                <div className="text-sm text-gray-400 mt-0.5">{email}</div>
+              </div>
+            </div>
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-sm text-accent hover:underline"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-accent border border-accent/30 rounded-lg hover:bg-accent-light transition-colors"
             >
               <Pencil size={14} />
               Bearbeiten
             </button>
           </div>
 
-          <dl className="space-y-3 text-sm">
-            <ProfileRow label="Benutzername" value={profile?.username ? `@${profile.username}` : '–'} />
-            <ProfileRow label="Anzeigename" value={profile?.display_name || '–'} />
-            <ProfileRow label="E-Mail" value={email} />
-            <ProfileRow
-              label="Heimatclub"
-              value={homeClub ? `${homeClub.name}${homeClub.city ? ` (${homeClub.city})` : ''}` : '–'}
-            />
-            <ProfileRow
-              label="Handicap"
-              value={profile?.handicap != null ? `${profile.handicap}` : '–'}
-            />
-          </dl>
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <Trophy size={18} className="mx-auto text-gray-400 mb-1.5" />
+              <div className="text-2xl font-bold text-gray-900">
+                {profile?.handicap != null ? profile.handicap : '–'}
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5">Handicap</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <MapPin size={18} className="mx-auto text-gray-400 mb-1.5" />
+              <div className="text-sm font-semibold text-gray-900 leading-tight">
+                {homeClub ? homeClub.name.replace(/\s*(e\.V\.|GmbH|GmbH & Co\. KG)\s*/g, '').trim() : '–'}
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5">Heimatclub</div>
+            </div>
+          </div>
         </div>
 
         <div className="text-xs text-gray-400 text-center">
@@ -123,15 +144,15 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
   // Edit mode
   return (
     <form onSubmit={handleSave} className="space-y-5">
-      <div className="bg-white border border-gray-200 rounded-lg p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
             Profil bearbeiten
           </h2>
           <button
             type="button"
             onClick={handleCancel}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <X size={14} />
             Abbrechen
@@ -154,7 +175,7 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
                 maxLength={30}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Nur Kleinbuchstaben, Zahlen, Punkte und Unterstriche</p>
+            <p className="text-xs text-gray-400 mt-1">Kleinbuchstaben, Zahlen, Punkte und Unterstriche</p>
           </div>
 
           <div>
@@ -167,18 +188,6 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
               onChange={(e) => setDisplayName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
               placeholder="Dein Name"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              E-Mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              disabled
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400"
             />
           </div>
 
@@ -232,14 +241,5 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
         {saving ? 'Wird gespeichert...' : 'Speichern'}
       </button>
     </form>
-  );
-}
-
-function ProfileRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-gray-400">{label}</dt>
-      <dd className="font-medium text-gray-900 text-right">{value}</dd>
-    </div>
   );
 }
