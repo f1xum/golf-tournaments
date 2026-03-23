@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
+import SaveTournamentButton from '@/components/save-tournament-button';
 
 interface Props {
   tournament: Tournament;
@@ -59,7 +60,10 @@ export default function TournamentCard({ tournament: t, club }: Props) {
       </div>
 
       {/* Name & club */}
-      <div className="font-semibold text-base leading-snug mb-1">{t.name}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-semibold text-base leading-snug mb-1">{t.name}</div>
+        <SaveTournamentButton tournamentId={t.id} size="sm" />
+      </div>
       <div className="text-sm text-gray-500 mb-2">
         {club?.name}{club?.city ? ` · ${club.city}` : ''}
       </div>

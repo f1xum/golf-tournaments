@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
+import SaveTournamentButton from '@/components/save-tournament-button';
 
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
@@ -55,7 +56,10 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
       </Link>
 
       {/* Header */}
-      <h1 className="text-2xl font-bold mb-2">{t.name}</h1>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <h1 className="text-2xl font-bold">{t.name}</h1>
+        <SaveTournamentButton tournamentId={t.id} />
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <span className="text-sm font-semibold text-accent">{dateStr}{endStr}</span>
