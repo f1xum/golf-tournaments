@@ -22,23 +22,33 @@ export default async function ProfilPage() {
       .eq('user_id', user.id),
   ]);
 
-  // Fetch the actual tournament data for saved tournaments
   const savedIds = (savedRows ?? []).map((r) => r.tournament_id);
-  let savedTournaments: Tournament[] = [];
+  let upcomingTournaments: Tournament[] = [];
+  let pastTournaments: Tournament[] = [];
   let savedClubs: Record<string, GolfClub> = {};
 
   if (savedIds.length > 0) {
-    const { data: tournaments } = await supabase
-      .from('tournaments')
-      .select('*')
-      .in('id', savedIds)
-      .gte('date_start', today)
-      .order('date_start', { ascending: true });
+    const [{ data: upcoming }, { data: past }] = await Promise.all([
+      supabase
+        .from('tournaments')
+        .select('*')
+        .in('id', savedIds)
+        .gte('date_start', today)
+        .order('date_start', { ascending: true }),
+      supabase
+        .from('tournaments')
+        .select('*')
+        .in('id', savedIds)
+        .lt('date_start', today)
+        .order('date_start', { ascending: false }),
+    ]);
 
-    savedTournaments = (tournaments ?? []) as Tournament[];
+    upcomingTournaments = (upcoming ?? []) as Tournament[];
+    pastTournaments = (past ?? []) as Tournament[];
 
-    // Get clubs for these tournaments
-    const clubIds = [...new Set(savedTournaments.map((t) => t.club_id).filter(Boolean))];
+    // Get clubs for all saved tournaments
+    const allTournaments = [...upcomingTournaments, ...pastTournaments];
+    const clubIds = [...new Set(allTournaments.map((t) => t.club_id).filter(Boolean))];
     if (clubIds.length > 0) {
       const { data: clubData } = await supabase
         .from('golf_clubs')
@@ -59,7 +69,11 @@ export default async function ProfilPage() {
         email={user.email ?? ''}
       />
 
-      <SavedTournaments tournaments={savedTournaments} clubs={savedClubs} />
+      <SavedTournaments
+        upcoming={upcomingTournaments}
+        past={pastTournaments}
+        clubs={savedClubs}
+      />
     </div>
   );
 }
