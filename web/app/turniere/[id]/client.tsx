@@ -132,7 +132,6 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
               {raw.hcp_relevant !== undefined && (
                 <DetailRow label="HCP-relevant" value={raw.hcp_relevant ? 'Ja' : 'Nein'} />
               )}
-              {t.source && <DetailRow label="Quelle" value={sourceLabel} />}
             </dl>
           </div>
 
