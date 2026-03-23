@@ -59,21 +59,14 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
               <div className="text-sm">
                 <div className="font-semibold">{club.name}</div>
                 {club.city && <div className="text-gray-500">{club.city}</div>}
-                {count > 0 && (
-                  <div className="mt-1 text-accent font-medium">
-                    {count} kommende Turnier{count !== 1 ? 'e' : ''}
-                  </div>
-                )}
-                {club.website && (
-                  <a
-                    href={club.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent hover:underline text-xs mt-1 block"
-                  >
-                    Website
-                  </a>
-                )}
+                <a
+                  href={`/clubs/${club.id}`}
+                  className="mt-1 text-accent font-medium hover:underline block"
+                >
+                  {count > 0
+                    ? `${count} kommende Turnier${count !== 1 ? 'e' : ''} →`
+                    : 'Club ansehen →'}
+                </a>
               </div>
             </Popup>
           </Marker>

@@ -13,6 +13,7 @@ export interface Filters {
   visitors: string;
   age: string;
   sponsored: string;
+  club: string;
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -26,6 +27,7 @@ export const DEFAULT_FILTERS: Filters = {
   visitors: 'all',
   age: 'all',
   sponsored: 'all',
+  club: '',
 };
 
 interface Props {

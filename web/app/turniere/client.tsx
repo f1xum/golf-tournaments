@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Tournament, GolfClub } from '@/lib/types';
 import { extractHoles } from '@/lib/tournament-utils';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
@@ -13,13 +14,21 @@ interface Props {
 }
 
 export default function TurniereClient({ tournaments, clubs }: Props) {
+  const searchParams = useSearchParams();
+  const clubParam = searchParams.get('club') ?? '';
+
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<Filters>({
+    ...DEFAULT_FILTERS,
+    club: clubParam,
+  });
 
   const filtered = useMemo(() => {
     return tournaments.filter((t) => {
       const raw = t.raw_data || {};
 
+      // Club
+      if (filters.club && t.club_id !== filters.club) return false;
       // Region
       if (filters.region) {
         const club = clubs[t.club_id || ''];
@@ -74,8 +83,25 @@ export default function TurniereClient({ tournaments, clubs }: Props) {
     });
   }, [tournaments, clubs, filters]);
 
+  const activeClub = filters.club ? clubs[filters.club] : null;
+
   return (
     <>
+      {/* Club filter banner */}
+      {activeClub && (
+        <div className="flex items-center justify-between bg-accent-light border border-accent/20 rounded-lg px-4 py-2.5 mb-4">
+          <span className="text-sm font-medium text-accent">
+            Turniere bei {activeClub.name}{activeClub.city ? ` (${activeClub.city})` : ''}
+          </span>
+          <button
+            onClick={() => setFilters({ ...filters, club: '' })}
+            className="text-xs text-accent hover:underline"
+          >
+            Alle anzeigen
+          </button>
+        </div>
+      )}
+
       {/* View toggle */}
       <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
         <button

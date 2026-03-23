@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { GolfClub } from '@/lib/types';
 import { REGIONS } from '@/lib/constants';
-import { ExternalLink, MapPin } from 'lucide-react';
+import { MapPin, ChevronRight } from 'lucide-react';
 
 interface Props {
   clubs: GolfClub[];
@@ -53,52 +54,24 @@ export default function ClubsClient({ clubs }: Props) {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {filtered.map((club) => (
-          <div
+          <Link
             key={club.id}
-            className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+            href={`/clubs/${club.id}`}
+            className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
           >
-            <div className="font-semibold text-base mb-1">{club.name}</div>
-            {(club.city || club.region) && (
-              <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
-                <MapPin size={14} />
-                <span>
-                  {[club.city, club.region].filter(Boolean).join(', ')}
-                </span>
-              </div>
-            )}
-            {club.address && (
-              <div className="text-sm text-gray-400 mb-2">{club.address}</div>
-            )}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {club.website && (
-                <a
-                  href={club.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
-                >
-                  <ExternalLink size={12} />
-                  Website
-                </a>
-              )}
-              {club.phone && (
-                <a
-                  href={`tel:${club.phone}`}
-                  className="text-xs text-gray-500 hover:underline"
-                >
-                  {club.phone}
-                </a>
-              )}
-              {club.email && (
-                <a
-                  href={`mailto:${club.email}`}
-                  className="text-xs text-gray-500 hover:underline"
-                >
-                  {club.email}
-                </a>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-base mb-1">{club.name}</div>
+              {(club.city || club.region) && (
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <MapPin size={14} className="shrink-0" />
+                  <span className="truncate">
+                    {[club.city, club.region].filter(Boolean).join(', ')}
+                  </span>
+                </div>
               )}
             </div>
-          </div>
+            <ChevronRight size={16} className="shrink-0 text-gray-300" />
+          </Link>
         ))}
       </div>
 
