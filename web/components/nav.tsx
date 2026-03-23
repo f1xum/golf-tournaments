@@ -37,7 +37,7 @@ export default function Nav() {
       (_event, session) => setUser(session?.user ?? null)
     );
     return () => subscription.unsubscribe();
-  }, []);
+  }, [pathname]);
 
   async function handleLogout() {
     const supabase = createClient();
