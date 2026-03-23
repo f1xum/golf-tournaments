@@ -51,6 +51,7 @@ export interface Tournament {
 
 export interface Profile {
   id: string;
+  username: string | null;
   display_name: string | null;
   home_club_id: string | null;
   handicap: number | null;

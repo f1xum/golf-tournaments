@@ -16,11 +16,11 @@ export default async function ProfilPage() {
 
   return (
     <div className="py-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold mb-1">Mein Profil</h1>
-      <p className="text-gray-500 text-sm mb-6">{user.email}</p>
+      <h1 className="text-2xl font-bold mb-6">Mein Profil</h1>
       <ProfileForm
         profile={profile as Profile | null}
         clubs={(clubs ?? []) as Pick<GolfClub, 'id' | 'name' | 'city'>[]}
+        email={user.email ?? ''}
       />
     </div>
   );
