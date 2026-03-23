@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import MapWrapper from './client';
@@ -6,6 +6,7 @@ import MapWrapper from './client';
 export const revalidate = 3600;
 
 async function getData() {
+  const supabase = await createClient();
   const today = todayISO();
 
   const [clubsRes, tournamentsRes] = await Promise.all([

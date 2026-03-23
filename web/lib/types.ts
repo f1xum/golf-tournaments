@@ -48,3 +48,13 @@ export interface Tournament {
   source_url: string | null;
   raw_data: RawData | null;
 }
+
+export interface Profile {
+  id: string;
+  display_name: string | null;
+  home_club_id: string | null;
+  handicap: number | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}

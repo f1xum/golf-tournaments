@@ -1,10 +1,11 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GolfClub } from '@/lib/types';
 import ClubsClient from './client';
 
 export const revalidate = 3600;
 
 async function getClubs() {
+  const supabase = await createClient();
   const { data } = await supabase
     .from('golf_clubs')
     .select('*')

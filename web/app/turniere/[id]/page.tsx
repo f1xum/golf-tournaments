@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Tournament } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import TurnierDetailClient from './client';
@@ -10,6 +10,7 @@ interface PageProps {
 }
 
 async function getTournament(id: string) {
+  const supabase = await createClient();
   const { data: tournament } = await supabase
     .from('tournaments')
     .select('*')

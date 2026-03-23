@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { Calendar, Building2, Map } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { todayISO } from '@/lib/utils';
 
 export const revalidate = 3600; // revalidate every hour
 
 async function getStats() {
+  const supabase = await createClient();
   const today = todayISO();
 
   const [tournamentsRes, clubsRes, nextRes] = await Promise.all([
