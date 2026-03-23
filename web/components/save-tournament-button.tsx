@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   tournamentId: string;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
 }
 
 export default function SaveTournamentButton({ tournamentId, size = 'md' }: Props) {
@@ -62,6 +62,25 @@ export default function SaveTournamentButton({ tournamentId, size = 'md' }: Prop
   // Don't show button if not logged in
   if (!userId && !loading) return null;
 
+  // Large variant — full-width CTA button
+  if (size === 'lg') {
+    return (
+      <button
+        onClick={toggle}
+        disabled={loading}
+        className={`w-full flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg transition-colors disabled:opacity-30 ${
+          saved
+            ? 'bg-accent text-white'
+            : 'bg-accent text-white hover:bg-accent/90'
+        }`}
+      >
+        <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+        {saved ? 'Turnier gespeichert' : 'Turnier speichern'}
+      </button>
+    );
+  }
+
+  // Small / medium icon-only variants
   const iconSize = size === 'sm' ? 14 : 18;
 
   return (

@@ -56,10 +56,7 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <h1 className="text-2xl font-bold">{t.name}</h1>
-        <SaveTournamentButton tournamentId={t.id} />
-      </div>
+      <h1 className="text-2xl font-bold mb-2">{t.name}</h1>
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <span className="text-sm font-semibold text-accent">{dateStr}{endStr}</span>
@@ -158,13 +155,16 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
             </div>
           )}
 
-          {/* External link */}
+          {/* Save button */}
+          <SaveTournamentButton tournamentId={t.id} size="lg" />
+
+          {/* External link (subtle) */}
           {t.source_url && (
             <a
               href={t.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full text-center py-3 px-4 bg-accent text-white font-medium rounded-lg hover:bg-accent/90 transition-colors"
+              className="block text-center text-sm text-gray-400 hover:text-accent transition-colors"
             >
               Auf {sourceLabel} ansehen →
             </a>
