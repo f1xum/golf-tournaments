@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, GolfClub } from '@/lib/types';
-import { Pencil, X, MapPin, Trophy } from 'lucide-react';
+import { Pencil, X, MapPin, Trophy, Search } from 'lucide-react';
 
 interface Props {
   profile: Profile | null;
@@ -191,23 +191,11 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Heimatclub
-            </label>
-            <select
-              value={homeClubId}
-              onChange={(e) => setHomeClubId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            >
-              <option value="">Kein Heimatclub</option>
-              {clubs.map((club) => (
-                <option key={club.id} value={club.id}>
-                  {club.name}{club.city ? ` (${club.city})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ClubSearch
+            clubs={clubs}
+            value={homeClubId}
+            onChange={setHomeClubId}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -241,5 +229,106 @@ export default function ProfileForm({ profile, clubs, email }: Props) {
         {saving ? 'Wird gespeichert...' : 'Speichern'}
       </button>
     </form>
+  );
+}
+
+function ClubSearch({
+  clubs,
+  value,
+  onChange,
+}: {
+  clubs: Pick<GolfClub, 'id' | 'name' | 'city'>[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selected = clubs.find((c) => c.id === value);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-zäöüß0-9]/g, '');
+  const q = normalize(query);
+
+  const filtered = q
+    ? clubs.filter((c) => {
+        const haystack = normalize(c.name + ' ' + (c.city ?? ''));
+        return haystack.includes(q);
+      }).slice(0, 8)
+    : clubs.slice(0, 8);
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Heimatclub
+      </label>
+
+      {/* Selected display / trigger */}
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => { setOpen(true); setQuery(''); }}
+          className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+        >
+          <span className={selected ? 'text-gray-900' : 'text-gray-400'}>
+            {selected ? `${selected.name}${selected.city ? ` (${selected.city})` : ''}` : 'Club suchen...'}
+          </span>
+          <Search size={14} className="text-gray-400 shrink-0" />
+        </button>
+      ) : (
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Club suchen..."
+            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          />
+        </div>
+      )}
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => { onChange(''); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50"
+          >
+            Kein Heimatclub
+          </button>
+          {filtered.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => { onChange(c.id); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-accent-light transition-colors ${
+                c.id === value ? 'bg-accent-light text-accent font-medium' : 'text-gray-900'
+              }`}
+            >
+              {c.name}
+              {c.city && <span className="text-gray-400 ml-1">({c.city})</span>}
+            </button>
+          ))}
+          {q && filtered.length === 0 && (
+            <div className="px-3 py-4 text-sm text-gray-400 text-center">
+              Kein Club gefunden
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
