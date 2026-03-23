@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, Building2, Map, LogIn, LogOut, UserCircle } from 'lucide-react';
+import { Calendar, Building2, Map, LogIn, LogOut, UserCircle, Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
@@ -17,10 +17,21 @@ export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        supabase
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('read', false)
+          .then(({ count }) => setUnreadCount(count ?? 0));
+      }
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => setUser(session?.user ?? null)
@@ -66,6 +77,22 @@ export default function Nav() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              <Link
+                href="/benachrichtigungen"
+                className={`relative flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  pathname === '/benachrichtigungen'
+                    ? 'bg-accent-light text-accent'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+                title="Benachrichtigungen"
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
               <Link
                 href="/profil"
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${

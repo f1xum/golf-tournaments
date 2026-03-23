@@ -58,4 +58,26 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  notify_tournament_reminder: boolean;
+  notify_registration_closing: boolean;
+  notify_new_nearby: boolean;
+  notify_hcp_match: boolean;
+  reminder_days_before: number;
+}
+
+export type NotificationType =
+  | 'tournament_reminder'
+  | 'registration_closing'
+  | 'new_tournament_nearby'
+  | 'hcp_match';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  tournament_id: string | null;
+  read: boolean;
+  created_at: string;
 }
