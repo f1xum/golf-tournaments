@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Calendar, Building2, Map, LogIn, UserCircle, Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
