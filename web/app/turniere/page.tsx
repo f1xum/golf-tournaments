@@ -9,13 +9,19 @@ async function getData() {
   const supabase = await createClient();
   const today = todayISO();
 
-  const [tournamentsRes, clubsRes] = await Promise.all([
+  const [upcomingRes, pastRes, clubsRes] = await Promise.all([
     supabase
       .from('tournaments')
       .select('*')
       .gte('date_start', today)
       .order('date_start', { ascending: true })
       .limit(5000),
+    supabase
+      .from('tournaments')
+      .select('*')
+      .lt('date_start', today)
+      .order('date_start', { ascending: false })
+      .limit(500),
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude'),
@@ -27,13 +33,14 @@ async function getData() {
   });
 
   return {
-    tournaments: (tournamentsRes.data ?? []) as Tournament[],
+    upcoming: (upcomingRes.data ?? []) as Tournament[],
+    past: (pastRes.data ?? []) as Tournament[],
     clubs,
   };
 }
 
 export default async function TurnierePage() {
-  const { tournaments, clubs } = await getData();
+  const { upcoming, past, clubs } = await getData();
 
   return (
     <div className="py-6">
@@ -41,7 +48,7 @@ export default async function TurnierePage() {
       <p className="text-gray-500 text-sm mb-6">
         Alle kommenden Golfturniere in Bayern
       </p>
-      <TurniereClient tournaments={tournaments} clubs={clubs} />
+      <TurniereClient upcoming={upcoming} past={past} clubs={clubs} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { GolfClub, Tournament } from '@/lib/types';
-import { MapPin, ExternalLink, Phone, Mail, Calendar } from 'lucide-react';
+import { MapPin, ExternalLink, Phone, Mail, Calendar, Clock, ChevronDown } from 'lucide-react';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
 
@@ -19,11 +19,13 @@ const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
 
 interface Props {
   club: GolfClub;
-  tournaments: Tournament[];
+  upcoming: Tournament[];
+  past: Tournament[];
 }
 
-export default function ClubDetailClient({ club, tournaments }: Props) {
+export default function ClubDetailClient({ club, upcoming, past }: Props) {
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [showPast, setShowPast] = useState(false);
 
   const clubsMap = { [club.id]: club };
 
@@ -96,14 +98,14 @@ export default function ClubDetailClient({ club, tournaments }: Props) {
       <div className="flex items-center gap-3 mb-4">
         <Calendar size={18} className="text-accent" />
         <h2 className="text-lg font-bold">Kommende Turniere</h2>
-        {tournaments.length > 0 && (
+        {upcoming.length > 0 && (
           <span className="text-xs bg-accent-light text-accent px-2 py-0.5 rounded-full font-medium">
-            {tournaments.length}
+            {upcoming.length}
           </span>
         )}
       </div>
 
-      {tournaments.length === 0 ? (
+      {upcoming.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
           <Calendar size={32} className="mx-auto text-gray-300 mb-3" />
           <p className="text-sm text-gray-400">Keine kommenden Turniere bei diesem Club.</p>
@@ -135,11 +137,41 @@ export default function ClubDetailClient({ club, tournaments }: Props) {
           </div>
 
           {view === 'calendar' ? (
-            <WeekCalendar tournaments={tournaments} clubs={clubsMap} />
+            <WeekCalendar tournaments={upcoming} clubs={clubsMap} />
           ) : (
-            <TournamentList tournaments={tournaments} clubs={clubsMap} />
+            <TournamentList tournaments={upcoming} clubs={clubsMap} />
           )}
         </>
+      )}
+
+      {/* Past tournaments */}
+      {past.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setShowPast(!showPast)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-gray-400" />
+              <span className="text-sm font-medium text-gray-600">
+                Vergangene Turniere
+              </span>
+              <span className="text-xs text-gray-400">
+                {past.length}
+              </span>
+            </div>
+            <ChevronDown
+              size={16}
+              className={`text-gray-400 transition-transform ${showPast ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {showPast && (
+            <div className="mt-3">
+              <TournamentList tournaments={past} clubs={clubsMap} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

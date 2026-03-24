@@ -45,7 +45,7 @@ export default function Nav() {
           The Pin
         </Link>
 
-        <div className="flex gap-1">
+        <div className="hidden sm:flex gap-1">
           {links.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
             return (
@@ -59,7 +59,7 @@ export default function Nav() {
                 }`}
               >
                 <Icon size={16} />
-                <span className="hidden sm:inline">{label}</span>
+                <span>{label}</span>
               </Link>
             );
           })}
@@ -86,27 +86,27 @@ export default function Nav() {
               </Link>
               <Link
                 href="/profil"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname.startsWith('/profil')
                     ? 'bg-accent-light text-accent'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <UserCircle size={16} />
-                <span className="hidden sm:inline">Profil</span>
+                <span>Profil</span>
               </Link>
             </>
           ) : (
             <Link
               href="/login"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === '/login'
                   ? 'bg-accent-light text-accent'
                   : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
               <LogIn size={16} />
-              <span className="hidden sm:inline">Anmelden</span>
+              <span>Anmelden</span>
             </Link>
           )}
         </div>

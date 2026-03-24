@@ -7,81 +7,83 @@ import { extractHoles } from '@/lib/tournament-utils';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
+import { ChevronDown, Clock } from 'lucide-react';
 
 interface Props {
-  tournaments: Tournament[];
+  upcoming: Tournament[];
+  past: Tournament[];
   clubs: Record<string, GolfClub>;
 }
 
-export default function TurniereClient({ tournaments, clubs }: Props) {
+function applyFilters(tournaments: Tournament[], filters: Filters, clubs: Record<string, GolfClub>) {
+  return tournaments.filter((t) => {
+    const raw = t.raw_data || {};
+
+    if (filters.club && t.club_id !== filters.club) return false;
+    if (filters.region) {
+      const club = clubs[t.club_id || ''];
+      if (!club || club.region !== filters.region) return false;
+    }
+    if (filters.format && t.format !== filters.format) return false;
+    if (filters.fee !== 'all') {
+      const maxFee = parseInt(filters.fee);
+      if (maxFee === 0 && t.entry_fee && t.entry_fee > 0) return false;
+      if (maxFee > 0 && t.entry_fee && t.entry_fee > maxFee) return false;
+    }
+    if (filters.slots === 'yes') {
+      if (raw.free_slots !== null && raw.free_slots !== undefined && raw.free_slots <= 0)
+        return false;
+    }
+    if (filters.hcp === 'yes' && !raw.hcp_relevant) return false;
+    if (filters.hcp === 'no' && raw.hcp_relevant) return false;
+    if (filters.holes !== 'all') {
+      const holes = extractHoles(t.raw_data, t.description);
+      if (holes !== parseInt(filters.holes)) return false;
+    }
+    if (filters.gender !== 'all') {
+      const g = (t.gender || '').toLowerCase();
+      if (filters.gender === 'herren' && !g.includes('herr') && !g.includes('männ')) return false;
+      if (filters.gender === 'damen' && !g.includes('dam') && !g.includes('frauen')) return false;
+      if (filters.gender === 'mixed' && !g.includes('herren und damen') && !g.includes('mixed') && !g.includes('alle')) return false;
+    }
+    if (filters.visitors === 'yes') {
+      if (!raw.guests_allowed) return false;
+    }
+    if (filters.age !== 'all') {
+      const ac = (t.age_class || '').toLowerCase();
+      if (filters.age === 'jugend' && !ac.includes('jugend') && !ac.includes('junior')) return false;
+      if (filters.age === 'senioren' && !ac.includes('senior') && !ac.includes('ü50') && !ac.includes('ü60')) return false;
+      if (filters.age === 'keine' && ac && ac !== 'alle' && ac !== 'allgemein') return false;
+    }
+    if (filters.sponsored === 'yes') {
+      const prizes = raw.prizes;
+      if (!prizes || !Array.isArray(prizes) || prizes.length === 0) return false;
+    }
+
+    return true;
+  });
+}
+
+export default function TurniereClient({ upcoming, past, clubs }: Props) {
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [showPast, setShowPast] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     club: clubParam,
   });
 
-  const filtered = useMemo(() => {
-    return tournaments.filter((t) => {
-      const raw = t.raw_data || {};
+  const filteredUpcoming = useMemo(
+    () => applyFilters(upcoming, filters, clubs),
+    [upcoming, clubs, filters]
+  );
 
-      // Club
-      if (filters.club && t.club_id !== filters.club) return false;
-      // Region
-      if (filters.region) {
-        const club = clubs[t.club_id || ''];
-        if (!club || club.region !== filters.region) return false;
-      }
-      // Format
-      if (filters.format && t.format !== filters.format) return false;
-      // Fee
-      if (filters.fee !== 'all') {
-        const maxFee = parseInt(filters.fee);
-        if (maxFee === 0 && t.entry_fee && t.entry_fee > 0) return false;
-        if (maxFee > 0 && t.entry_fee && t.entry_fee > maxFee) return false;
-      }
-      // Slots
-      if (filters.slots === 'yes') {
-        if (raw.free_slots !== null && raw.free_slots !== undefined && raw.free_slots <= 0)
-          return false;
-      }
-      // HCP-relevant
-      if (filters.hcp === 'yes' && !raw.hcp_relevant) return false;
-      if (filters.hcp === 'no' && raw.hcp_relevant) return false;
-      // Holes
-      if (filters.holes !== 'all') {
-        const holes = extractHoles(t.raw_data, t.description);
-        if (holes !== parseInt(filters.holes)) return false;
-      }
-      // Gender
-      if (filters.gender !== 'all') {
-        const g = (t.gender || '').toLowerCase();
-        if (filters.gender === 'herren' && !g.includes('herr') && !g.includes('männ')) return false;
-        if (filters.gender === 'damen' && !g.includes('dam') && !g.includes('frauen')) return false;
-        if (filters.gender === 'mixed' && !g.includes('herren und damen') && !g.includes('mixed') && !g.includes('alle')) return false;
-      }
-      // Visitors / Guests
-      if (filters.visitors === 'yes') {
-        if (!raw.guests_allowed) return false;
-      }
-      // Age class
-      if (filters.age !== 'all') {
-        const ac = (t.age_class || '').toLowerCase();
-        if (filters.age === 'jugend' && !ac.includes('jugend') && !ac.includes('junior')) return false;
-        if (filters.age === 'senioren' && !ac.includes('senior') && !ac.includes('ü50') && !ac.includes('ü60')) return false;
-        if (filters.age === 'keine' && ac && ac !== 'alle' && ac !== 'allgemein') return false;
-      }
-      // Sponsored / Prizes
-      if (filters.sponsored === 'yes') {
-        const prizes = raw.prizes;
-        if (!prizes || !Array.isArray(prizes) || prizes.length === 0) return false;
-      }
-
-      return true;
-    });
-  }, [tournaments, clubs, filters]);
+  const filteredPast = useMemo(
+    () => applyFilters(past, filters, clubs),
+    [past, clubs, filters]
+  );
 
   const activeClub = filters.club ? clubs[filters.club] : null;
 
@@ -128,10 +130,51 @@ export default function TurniereClient({ tournaments, clubs }: Props) {
 
       <TournamentFilters filters={filters} onChange={setFilters} />
 
+      {/* Upcoming indicator */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full bg-accent"></div>
+        <span className="text-sm font-medium text-gray-700">
+          Kommende Turniere
+        </span>
+        <span className="text-xs text-gray-400">
+          {filteredUpcoming.length} Turnier{filteredUpcoming.length !== 1 ? 'e' : ''}
+        </span>
+      </div>
+
       {view === 'calendar' ? (
-        <WeekCalendar tournaments={filtered} clubs={clubs} />
+        <WeekCalendar tournaments={filteredUpcoming} clubs={clubs} />
       ) : (
-        <TournamentList tournaments={filtered} clubs={clubs} />
+        <TournamentList tournaments={filteredUpcoming} clubs={clubs} />
+      )}
+
+      {/* Past tournaments toggle */}
+      {filteredPast.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setShowPast(!showPast)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-gray-400" />
+              <span className="text-sm font-medium text-gray-600">
+                Vergangene Turniere
+              </span>
+              <span className="text-xs text-gray-400">
+                {filteredPast.length}
+              </span>
+            </div>
+            <ChevronDown
+              size={16}
+              className={`text-gray-400 transition-transform ${showPast ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {showPast && (
+            <div className="mt-3">
+              <TournamentList tournaments={filteredPast} clubs={clubs} />
+            </div>
+          )}
+        </div>
       )}
     </>
   );
