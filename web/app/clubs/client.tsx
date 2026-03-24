@@ -1,22 +1,51 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { GolfClub } from '@/lib/types';
 import { REGIONS } from '@/lib/constants';
-import { MapPin, ChevronRight } from 'lucide-react';
+import { MapPin, ChevronRight, Locate } from 'lucide-react';
 
 interface Props {
   clubs: GolfClub[];
 }
 
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function ClubsClient({ clubs }: Props) {
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('');
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [sortByDistance, setSortByDistance] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const handleLocate = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPos([pos.coords.latitude, pos.coords.longitude]);
+        setSortByDistance(true);
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return clubs.filter((c) => {
+    let result = clubs.filter((c) => {
       if (region && c.region !== region) return false;
       if (q) {
         const haystack = `${c.name} ${c.city || ''} ${c.address || ''}`.toLowerCase();
@@ -24,12 +53,31 @@ export default function ClubsClient({ clubs }: Props) {
       }
       return true;
     });
-  }, [clubs, search, region]);
+
+    if (sortByDistance && userPos) {
+      result = [...result].sort((a, b) => {
+        const distA = a.latitude && a.longitude
+          ? distanceKm(userPos[0], userPos[1], a.latitude, a.longitude)
+          : Infinity;
+        const distB = b.latitude && b.longitude
+          ? distanceKm(userPos[0], userPos[1], b.latitude, b.longitude)
+          : Infinity;
+        return distA - distB;
+      });
+    }
+
+    return result;
+  }, [clubs, search, region, sortByDistance, userPos]);
+
+  const getDistance = (club: GolfClub) => {
+    if (!userPos || !club.latitude || !club.longitude) return null;
+    return distanceKm(userPos[0], userPos[1], club.latitude, club.longitude);
+  };
 
   return (
     <>
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
           type="text"
           placeholder="Club oder Stadt suchen..."
@@ -49,30 +97,61 @@ export default function ClubsClient({ clubs }: Props) {
         </select>
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">{filtered.length} Clubs</p>
+      {/* Location / sort bar */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500">{filtered.length} Clubs</p>
+        <button
+          onClick={() => {
+            if (userPos) {
+              setSortByDistance(!sortByDistance);
+            } else {
+              handleLocate();
+            }
+          }}
+          disabled={locating}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            sortByDistance
+              ? 'bg-blue-50 text-blue-600 border border-blue-200'
+              : 'text-gray-500 border border-gray-200 hover:bg-gray-50'
+          } disabled:opacity-50`}
+        >
+          <Locate size={14} className={locating ? 'animate-pulse' : ''} />
+          {locating ? 'Suche...' : sortByDistance ? 'In der Nähe' : 'Nächste zuerst'}
+        </button>
+      </div>
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {filtered.map((club) => (
-          <Link
-            key={club.id}
-            href={`/clubs/${club.id}`}
-            className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold text-base mb-1">{club.name}</div>
-              {(club.city || club.region) && (
-                <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <MapPin size={14} className="shrink-0" />
-                  <span className="truncate">
-                    {[club.city, club.region].filter(Boolean).join(', ')}
-                  </span>
+        {filtered.map((club) => {
+          const dist = sortByDistance ? getDistance(club) : null;
+          return (
+            <Link
+              key={club.id}
+              href={`/clubs/${club.id}`}
+              className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-base mb-1">{club.name}</div>
+                <div className="flex items-center gap-2">
+                  {(club.city || club.region) && (
+                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <MapPin size={14} className="shrink-0" />
+                      <span className="truncate">
+                        {[club.city, club.region].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  {dist != null && (
+                    <span className="text-xs text-blue-500 font-medium shrink-0">
+                      {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`}
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
-            <ChevronRight size={16} className="shrink-0 text-gray-300" />
-          </Link>
-        ))}
+              </div>
+              <ChevronRight size={16} className="shrink-0 text-gray-300" />
+            </Link>
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (

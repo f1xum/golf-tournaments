@@ -1,21 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { useState, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { GolfClub } from '@/lib/types';
-
-// Fix default marker icons in Next.js/webpack
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+import { Locate } from 'lucide-react';
 
 const accentIcon = L.divIcon({
   className: '',
@@ -31,47 +21,138 @@ const accentIcon = L.divIcon({
   popupAnchor: [0, -8],
 });
 
+const userIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    width: 14px; height: 14px;
+    background: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 1px 6px rgba(59,130,246,0.5);
+  "></div>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
+function FlyTo({ position, zoom }: { position: [number, number]; zoom: number }) {
+  const map = useMap();
+  map.flyTo(position, zoom, { duration: 1 });
+  return null;
+}
+
 interface Props {
   clubs: GolfClub[];
   tournamentCounts: Record<string, number>;
 }
 
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function MapView({ clubs, tournamentCounts }: Props) {
-  // Bavaria center
   const center: [number, number] = [48.8, 11.5];
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [flyTarget, setFlyTarget] = useState<{ pos: [number, number]; zoom: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  const handleLocate = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserPos(coords);
+        setFlyTarget({ pos: coords, zoom: 11 });
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   return (
-    <MapContainer center={center} zoom={8} className="h-full w-full" scrollWheelZoom>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {clubs.map((club) => {
-        if (!club.latitude || !club.longitude) return null;
-        const count = tournamentCounts[club.id] || 0;
-        return (
-          <Marker
-            key={club.id}
-            position={[club.latitude, club.longitude]}
-            icon={accentIcon}
-          >
-            <Popup>
-              <div className="text-sm">
-                <div className="font-semibold">{club.name}</div>
-                {club.city && <div className="text-gray-500">{club.city}</div>}
-                <a
-                  href={`/clubs/${club.id}`}
-                  className="mt-1 text-accent font-medium hover:underline block"
-                >
-                  {count > 0
-                    ? `${count} kommende Turnier${count !== 1 ? 'e' : ''} →`
-                    : 'Club ansehen →'}
-                </a>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-    </MapContainer>
+    <div className="relative h-full w-full">
+      <MapContainer center={center} zoom={8} className="h-full w-full" scrollWheelZoom>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {flyTarget && <FlyTo position={flyTarget.pos} zoom={flyTarget.zoom} />}
+
+        {/* User position */}
+        {userPos && (
+          <>
+            <Marker position={userPos} icon={userIcon}>
+              <Popup>
+                <div className="text-sm font-medium">Mein Standort</div>
+              </Popup>
+            </Marker>
+            <Circle
+              center={userPos}
+              radius={500}
+              pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1 }}
+            />
+          </>
+        )}
+
+        {/* Club markers */}
+        {clubs.map((club) => {
+          if (!club.latitude || !club.longitude) return null;
+          const count = tournamentCounts[club.id] || 0;
+          const dist = userPos
+            ? distanceKm(userPos[0], userPos[1], club.latitude, club.longitude)
+            : null;
+          return (
+            <Marker
+              key={club.id}
+              position={[club.latitude, club.longitude]}
+              icon={accentIcon}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <div className="font-semibold">{club.name}</div>
+                  {club.city && <div className="text-gray-500">{club.city}</div>}
+                  {dist != null && (
+                    <div className="text-xs text-blue-500 mt-0.5">
+                      {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`} entfernt
+                    </div>
+                  )}
+                  <a
+                    href={`/clubs/${club.id}`}
+                    className="mt-1 text-accent font-medium hover:underline block"
+                  >
+                    {count > 0
+                      ? `${count} kommende Turnier${count !== 1 ? 'e' : ''} →`
+                      : 'Club ansehen →'}
+                  </a>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MapContainer>
+
+      {/* Locate button */}
+      <button
+        onClick={handleLocate}
+        disabled={locating}
+        className="absolute top-3 right-3 z-[1000] bg-white border border-gray-300 rounded-lg p-2.5 shadow-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+        title="Mein Standort"
+      >
+        <Locate
+          size={20}
+          className={`${userPos ? 'text-blue-500' : 'text-gray-600'} ${locating ? 'animate-pulse' : ''}`}
+        />
+      </button>
+    </div>
   );
 }
