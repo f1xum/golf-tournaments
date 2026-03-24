@@ -40,10 +40,10 @@ export default async function HomePage() {
       {/* Hero */}
       <div className="text-center mb-12">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-          Golf Turniere Bayern
+          The Pin
         </h1>
         <p className="text-gray-500 text-lg">
-          Alle Golfturniere in Bayern auf einen Blick
+          Finde und speichere Golfturniere in Bayern
         </p>
       </div>
 

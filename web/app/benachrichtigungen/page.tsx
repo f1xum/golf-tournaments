@@ -4,7 +4,7 @@ import { Notification, Tournament } from '@/lib/types';
 import NotificationList from './notification-list';
 
 export const metadata = {
-  title: 'Benachrichtigungen – Golf Bayern',
+  title: 'Benachrichtigungen – The Pin',
 };
 
 export default async function BenachrichtigungenPage() {

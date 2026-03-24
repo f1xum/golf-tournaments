@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   if (!club) return { title: 'Club nicht gefunden' };
   return {
-    title: `${club.name} – Turniere | Golf Bayern`,
+    title: `${club.name} – Turniere | The Pin`,
     description: `Turniere bei ${club.name}${club.city ? ` in ${club.city}` : ''}`,
   };
 }

@@ -3,8 +3,8 @@ import Nav from '@/components/nav';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Golf Turniere Bayern',
-  description: 'Alle Golfturniere in Bayern auf einen Blick',
+  title: 'The Pin – Golfturniere in Bayern',
+  description: 'Finde und speichere Golfturniere in Bayern',
 };
 
 export default function RootLayout({

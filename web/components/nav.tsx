@@ -51,7 +51,7 @@ export default function Nav() {
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
         <Link href="/" className="font-bold text-lg text-accent hover:opacity-80">
-          Golf Bayern
+          The Pin
         </Link>
 
         <div className="flex gap-1">
