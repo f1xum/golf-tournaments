@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
@@ -67,7 +68,9 @@ export default async function TurnierePage() {
       <p className="text-gray-500 text-sm mb-6">
         Alle kommenden Golfturniere in Bayern
       </p>
-      <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} />
+      <Suspense>
+        <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} />
+      </Suspense>
     </div>
   );
 }
