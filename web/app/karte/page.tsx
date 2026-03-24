@@ -45,7 +45,7 @@ export default async function KartePage() {
       <p className="text-gray-500 text-sm mb-4">
         {clubs.length} Clubs mit Standort
       </p>
-      <div className="h-[calc(100vh-200px)] min-h-[400px] rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+      <div className="h-[calc(100vh-260px)] sm:h-[calc(100vh-200px)] min-h-[300px] max-h-[600px] sm:max-h-none rounded-lg overflow-hidden border border-gray-200 shadow-sm">
         <MapWrapper clubs={clubs} tournamentCounts={tournamentCounts} />
       </div>
     </div>
