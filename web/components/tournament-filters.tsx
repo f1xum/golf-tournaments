@@ -14,6 +14,8 @@ export interface Filters {
   age: string;
   sponsored: string;
   club: string;
+  distance: string;       // 'all' | '25' | '50' | '100'
+  distanceFrom: string;   // 'location' | 'homeclub'
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -28,11 +30,14 @@ export const DEFAULT_FILTERS: Filters = {
   age: 'all',
   sponsored: 'all',
   club: '',
+  distance: 'all',
+  distanceFrom: 'location',
 };
 
 interface Props {
   filters: Filters;
   onChange: (filters: Filters) => void;
+  hasHomeClub?: boolean;
 }
 
 function ChipGroup({
@@ -63,9 +68,10 @@ function ChipGroup({
   );
 }
 
-export default function TournamentFilters({ filters, onChange }: Props) {
+export default function TournamentFilters({ filters, onChange, hasHomeClub }: Props) {
   const activeCount = Object.entries(filters).filter(([k, v]) => {
-    if (k === 'region' || k === 'format') return v !== '';
+    if (k === 'region' || k === 'format' || k === 'club') return v !== '';
+    if (k === 'distanceFrom') return false;
     return v !== 'all';
   }).length;
 
@@ -101,6 +107,47 @@ export default function TournamentFilters({ filters, onChange }: Props) {
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
+          </div>
+
+          {/* Distance */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Umkreis
+            </label>
+            <ChipGroup
+              options={[
+                { value: 'all', label: 'Alle' },
+                { value: '25', label: '25 km' },
+                { value: '50', label: '50 km' },
+                { value: '100', label: '100 km' },
+              ]}
+              value={filters.distance}
+              onChange={(v) => update({ distance: v })}
+            />
+            {filters.distance !== 'all' && hasHomeClub && (
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => update({ distanceFrom: 'location' })}
+                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                    filters.distanceFrom === 'location'
+                      ? 'bg-blue-50 text-blue-600 border-blue-200'
+                      : 'bg-gray-50 text-gray-600 border-gray-200'
+                  }`}
+                >
+                  Mein Standort
+                </button>
+                <button
+                  onClick={() => update({ distanceFrom: 'homeclub' })}
+                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                    filters.distanceFrom === 'homeclub'
+                      ? 'bg-accent-light text-accent border-accent/20'
+                      : 'bg-gray-50 text-gray-600 border-gray-200'
+                  }`}
+                >
+                  Heimatclub
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Format */}

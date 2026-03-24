@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Tournament, GolfClub } from '@/lib/types';
 import { extractHoles } from '@/lib/tournament-utils';
@@ -13,9 +13,27 @@ interface Props {
   upcoming: Tournament[];
   past: Tournament[];
   clubs: Record<string, GolfClub>;
+  homeClubCoords: [number, number] | null;
 }
 
-function applyFilters(tournaments: Tournament[], filters: Filters, clubs: Record<string, GolfClub>) {
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function applyFilters(
+  tournaments: Tournament[],
+  filters: Filters,
+  clubs: Record<string, GolfClub>,
+  refPoint: [number, number] | null,
+) {
   return tournaments.filter((t) => {
     const raw = t.raw_data || {};
 
@@ -23,6 +41,13 @@ function applyFilters(tournaments: Tournament[], filters: Filters, clubs: Record
     if (filters.region) {
       const club = clubs[t.club_id || ''];
       if (!club || club.region !== filters.region) return false;
+    }
+    // Distance
+    if (filters.distance !== 'all' && refPoint) {
+      const club = clubs[t.club_id || ''];
+      if (!club?.latitude || !club?.longitude) return false;
+      const dist = distanceKm(refPoint[0], refPoint[1], club.latitude, club.longitude);
+      if (dist > parseInt(filters.distance)) return false;
     }
     if (filters.format && t.format !== filters.format) return false;
     if (filters.fee !== 'all') {
@@ -64,7 +89,7 @@ function applyFilters(tournaments: Tournament[], filters: Filters, clubs: Record
   });
 }
 
-export default function TurniereClient({ upcoming, past, clubs }: Props) {
+export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }: Props) {
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
@@ -74,15 +99,32 @@ export default function TurniereClient({ upcoming, past, clubs }: Props) {
     ...DEFAULT_FILTERS,
     club: clubParam,
   });
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+
+  // Request geolocation when distance filter is set to 'location'
+  useEffect(() => {
+    if (filters.distance !== 'all' && filters.distanceFrom === 'location' && !userPos) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setUserPos([pos.coords.latitude, pos.coords.longitude]),
+          () => {},
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      }
+    }
+  }, [filters.distance, filters.distanceFrom, userPos]);
+
+  // Determine the reference point for distance filtering
+  const refPoint = filters.distanceFrom === 'homeclub' ? homeClubCoords : userPos;
 
   const filteredUpcoming = useMemo(
-    () => applyFilters(upcoming, filters, clubs),
-    [upcoming, clubs, filters]
+    () => applyFilters(upcoming, filters, clubs, refPoint),
+    [upcoming, clubs, filters, refPoint]
   );
 
   const filteredPast = useMemo(
-    () => applyFilters(past, filters, clubs),
-    [past, clubs, filters]
+    () => applyFilters(past, filters, clubs, refPoint),
+    [past, clubs, filters, refPoint]
   );
 
   const activeClub = filters.club ? clubs[filters.club] : null;
@@ -128,7 +170,18 @@ export default function TurniereClient({ upcoming, past, clubs }: Props) {
         </button>
       </div>
 
-      <TournamentFilters filters={filters} onChange={setFilters} />
+      <TournamentFilters
+        filters={filters}
+        onChange={setFilters}
+        hasHomeClub={!!homeClubCoords}
+      />
+
+      {/* Distance status hint */}
+      {filters.distance !== 'all' && filters.distanceFrom === 'location' && !userPos && (
+        <div className="text-xs text-blue-500 mb-3 px-1">
+          Standort wird ermittelt...
+        </div>
+      )}
 
       {/* Upcoming indicator */}
       <div className="flex items-center gap-2 mb-3">
