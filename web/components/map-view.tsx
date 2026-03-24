@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -36,7 +36,16 @@ const userIcon = L.divIcon({
 
 function FlyTo({ position, zoom }: { position: [number, number]; zoom: number }) {
   const map = useMap();
-  map.flyTo(position, zoom, { duration: 1 });
+  const posKey = `${position[0]},${position[1]}`;
+  const lastKey = useRef('');
+
+  useEffect(() => {
+    if (lastKey.current !== posKey) {
+      lastKey.current = posKey;
+      map.flyTo(position, zoom, { duration: 1 });
+    }
+  }, [map, position, zoom, posKey]);
+
   return null;
 }
 
