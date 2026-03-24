@@ -99,11 +99,6 @@ export default function UserHub({
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeColor="red"
         />
-        <MenuLink
-          href="/profil/einstellungen"
-          icon={Settings}
-          label="Einstellungen"
-        />
       </div>
     </div>
   );
