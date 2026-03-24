@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Calendar, Building2, Map, LogIn, LogOut, UserCircle, Bell } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Calendar, Building2, Map, LogIn, UserCircle, Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
@@ -15,7 +15,6 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname();
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -38,14 +37,6 @@ export default function Nav() {
     );
     return () => subscription.unsubscribe();
   }, [pathname]);
-
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push('/');
-    router.refresh();
-  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -96,7 +87,7 @@ export default function Nav() {
               <Link
                 href="/profil"
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === '/profil'
+                  pathname.startsWith('/profil')
                     ? 'bg-accent-light text-accent'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
@@ -104,13 +95,6 @@ export default function Nav() {
                 <UserCircle size={16} />
                 <span className="hidden sm:inline">Profil</span>
               </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                title="Abmelden"
-              >
-                <LogOut size={16} />
-              </button>
             </>
           ) : (
             <Link

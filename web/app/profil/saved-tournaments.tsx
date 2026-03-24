@@ -16,7 +16,7 @@ export default function SavedTournaments({ upcoming, past, clubs }: Props) {
   const total = upcoming.length + past.length;
 
   return (
-    <div className="mt-8">
+    <div id="saved-tournaments" className="mt-8">
       <div className="flex items-center gap-2 mb-4">
         <Bookmark size={18} className="text-accent" />
         <h2 className="text-lg font-bold">Gespeicherte Turniere</h2>

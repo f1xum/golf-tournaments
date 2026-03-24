@@ -2,8 +2,12 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Profile, GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
-import ProfileForm from './profile-form';
+import UserHub from './user-hub';
 import SavedTournaments from './saved-tournaments';
+
+export const metadata = {
+  title: 'Mein Bereich – The Pin',
+};
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -13,14 +17,29 @@ export default async function ProfilPage() {
 
   const today = todayISO();
 
-  const [{ data: profile }, { data: clubs }, { data: savedRows }] = await Promise.all([
+  const [{ data: profile }, { data: savedRows }, { count: unreadCount }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('golf_clubs').select('id, name, city').order('name'),
     supabase
       .from('saved_tournaments')
       .select('tournament_id')
       .eq('user_id', user.id),
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false),
   ]);
+
+  // Fetch home club name
+  let homeClubName: string | null = null;
+  if (profile?.home_club_id) {
+    const { data: club } = await supabase
+      .from('golf_clubs')
+      .select('name')
+      .eq('id', profile.home_club_id)
+      .single();
+    homeClubName = club?.name ?? null;
+  }
 
   const savedIds = (savedRows ?? []).map((r) => r.tournament_id);
   let upcomingTournaments: Tournament[] = [];
@@ -46,7 +65,6 @@ export default async function ProfilPage() {
     upcomingTournaments = (upcoming ?? []) as Tournament[];
     pastTournaments = (past ?? []) as Tournament[];
 
-    // Get clubs for all saved tournaments
     const allTournaments = [...upcomingTournaments, ...pastTournaments];
     const clubIds = [...new Set(allTournaments.map((t) => t.club_id).filter(Boolean))];
     if (clubIds.length > 0) {
@@ -62,11 +80,12 @@ export default async function ProfilPage() {
 
   return (
     <div className="py-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Mein Profil</h1>
-      <ProfileForm
+      <UserHub
         profile={profile as Profile | null}
-        clubs={(clubs ?? []) as Pick<GolfClub, 'id' | 'name' | 'city'>[]}
         email={user.email ?? ''}
+        homeClubName={homeClubName}
+        savedCount={savedIds.length}
+        unreadCount={unreadCount ?? 0}
       />
 
       <SavedTournaments
