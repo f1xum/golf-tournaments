@@ -25,7 +25,7 @@ async function getData() {
       .select(tournamentColumns)
       .lt('date_start', today)
       .order('date_start', { ascending: false })
-      .limit(200),
+      .limit(5000),
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude'),
@@ -69,7 +69,7 @@ export default async function TurnierePage() {
     <div className="py-6">
       <h1 className="text-2xl font-bold mb-1">Turnierkalender</h1>
       <p className="text-gray-500 text-sm mb-6">
-        Alle kommenden Golfturniere in Bayern
+        Alle Golfturniere in Bayern
       </p>
       <Suspense>
         <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} />

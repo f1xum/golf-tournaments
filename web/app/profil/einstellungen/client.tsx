@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, GolfClub } from '@/lib/types';
-import { ArrowLeft, Search, LogOut } from 'lucide-react';
+import { ArrowLeft, Search, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 
 interface Props {
   profile: Profile | null;
@@ -26,6 +26,21 @@ export default function SettingsClient({ profile, clubs, email }: Props) {
   const [notifyNearby, setNotifyNearby] = useState(profile?.notify_new_nearby ?? true);
   const [notifyHcp, setNotifyHcp] = useState(profile?.notify_hcp_match ?? true);
   const [reminderDays, setReminderDays] = useState(profile?.reminder_days_before?.toString() ?? '3');
+
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
+    if (stored) setTheme(stored);
+  }, []);
+
+  function applyTheme(newTheme: 'light' | 'dark' | 'system') {
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    const isDark = newTheme === 'dark' || (newTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', isDark);
+  }
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +228,31 @@ export default function SettingsClient({ profile, clubs, email }: Props) {
               checked={notifyHcp}
               onChange={setNotifyHcp}
             />
+          </div>
+        </Section>
+
+        {/* Appearance */}
+        <Section title="Erscheinungsbild">
+          <div className="flex gap-2">
+            {([
+              { value: 'light' as const, label: 'Hell', icon: Sun },
+              { value: 'dark' as const, label: 'Dunkel', icon: Moon },
+              { value: 'system' as const, label: 'System', icon: Monitor },
+            ]).map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => applyTheme(value)}
+                className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                  theme === value
+                    ? 'border-accent bg-accent-light text-accent'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            ))}
           </div>
         </Section>
 

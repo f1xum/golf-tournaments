@@ -1,9 +1,26 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { GolfClub } from '@/lib/types';
+
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+function useIsDark() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains('dark'));
+    const observer = new MutationObserver(() => {
+      setDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+  return dark;
+}
 
 const markerIcon = L.divIcon({
   className: '',
@@ -24,6 +41,7 @@ interface Props {
 }
 
 export default function ClubMapMini({ club }: Props) {
+  const isDark = useIsDark();
   if (!club.latitude || !club.longitude) return null;
 
   const center: [number, number] = [club.latitude, club.longitude];
@@ -31,8 +49,9 @@ export default function ClubMapMini({ club }: Props) {
   return (
     <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom={false}>
       <TileLayer
+        key={isDark ? 'dark' : 'light'}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        url={isDark ? TILE_DARK : TILE_LIGHT}
       />
       <Marker position={center} icon={markerIcon}>
         <Popup>

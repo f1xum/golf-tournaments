@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --color-accent: #2d6a4f;
   --color-accent-light: #e9f5ef;
@@ -15,6 +17,99 @@ body {
   color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Dark mode — activated by .dark class on <html> */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: #171717;
+  color: #ececec;
+}
+
+html.dark {
+  --color-accent: #4ead6e;
+  --color-accent-light: #1a3329;
+  --color-weekend: #1e2422;
+  --color-prize-bg: #2a2410;
+  --color-prize-border: #5a4a18;
+  --color-prize-text: #e8c84a;
+}
+
+/* Backgrounds */
+html.dark .bg-white { background-color: #222222 !important; }
+html.dark .bg-gray-50 { background-color: #1e1e1e !important; }
+html.dark .bg-gray-100 { background-color: #2a2a2a !important; }
+html.dark .bg-gray-200 { background-color: #333333 !important; }
+
+html.dark .hover\:bg-gray-50:hover { background-color: #2a2a2a !important; }
+html.dark .hover\:bg-gray-100:hover { background-color: #2a2a2a !important; }
+
+/* Borders */
+html.dark .border-gray-100 { border-color: #2a2a2a !important; }
+html.dark .border-gray-200 { border-color: #333333 !important; }
+html.dark .border-gray-300 { border-color: #444444 !important; }
+html.dark .divide-gray-100 > :not(:first-child) { border-color: #2a2a2a !important; }
+html.dark .divide-gray-200 > :not(:first-child) { border-color: #333333 !important; }
+
+/* Text — bumped for readability */
+html.dark .text-gray-900 { color: #f5f5f5 !important; }
+html.dark .text-gray-800 { color: #e8e8e8 !important; }
+html.dark .text-gray-700 { color: #d4d4d4 !important; }
+html.dark .text-gray-600 { color: #b8b8b8 !important; }
+html.dark .text-gray-500 { color: #a0a0a0 !important; }
+html.dark .text-gray-400 { color: #8c8c8c !important; }
+html.dark .text-gray-300 { color: #777777 !important; }
+html.dark .text-white { color: #f5f5f5 !important; }
+
+/* Semantic colors */
+html.dark .bg-red-50 { background-color: #2a1515 !important; }
+html.dark .bg-red-100 { background-color: #3a1a1a !important; }
+html.dark .text-red-600 { color: #f87171 !important; }
+html.dark .border-red-200 { border-color: #5a2020 !important; }
+html.dark .bg-red-500 { background-color: #dc2626 !important; }
+
+html.dark .bg-blue-50 { background-color: #151f2a !important; }
+html.dark .text-blue-500 { color: #60a5fa !important; }
+
+html.dark .bg-green-50 { background-color: #152a1a !important; }
+
+/* Shadows */
+html.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important; }
+html.dark .shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5) !important; }
+html.dark .shadow-lg { box-shadow: 0 10px 15px rgba(0, 0, 0, 0.6) !important; }
+
+/* Forms */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #2a2a2a !important;
+  border-color: #444444 !important;
+  color: #ececec !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #777777 !important;
+}
+
+/* Nav */
+html.dark nav {
+  background-color: #1c1c1c !important;
+  border-color: #333333 !important;
+}
+
+/* Leaflet popups */
+html.dark .leaflet-popup-content-wrapper {
+  background-color: #222222 !important;
+  color: #ececec !important;
+}
+html.dark .leaflet-popup-tip {
+  background-color: #222222 !important;
+}
+
+/* Toast / dark bg elements stay dark */
+html.dark .bg-gray-900 { background-color: #0a0a0a !important; }
 
 /* Leaflet container */
 .leaflet-container {

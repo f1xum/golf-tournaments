@@ -83,7 +83,7 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }
   const clubParam = searchParams.get('club') ?? '';
 
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
-  const [showPast, setShowPast] = useState(false);
+  const [showPast, setShowPast] = useState(true);
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     club: clubParam,
@@ -189,7 +189,7 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }
       </div>
 
       {view === 'calendar' ? (
-        <WeekCalendar tournaments={filteredUpcoming} clubs={clubs} />
+        <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
         <TournamentList tournaments={filteredUpcoming} clubs={clubs} />
       )}

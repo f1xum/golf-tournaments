@@ -8,6 +8,22 @@ import { GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { Locate } from 'lucide-react';
 
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+function useIsDark() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains('dark'));
+    const observer = new MutationObserver(() => {
+      setDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+  return dark;
+}
+
 const accentIcon = L.divIcon({
   className: '',
   html: `<div style="
@@ -57,6 +73,7 @@ interface Props {
 
 export default function MapView({ clubs, tournamentCounts }: Props) {
   const center: [number, number] = [48.8, 11.5];
+  const isDark = useIsDark();
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [flyTarget, setFlyTarget] = useState<{ pos: [number, number]; zoom: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -80,8 +97,9 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
     <div className="relative h-full w-full">
       <MapContainer center={center} zoom={8} className="h-full w-full" scrollWheelZoom>
         <TileLayer
+          key={isDark ? 'dark' : 'light'}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+          url={isDark ? TILE_DARK : TILE_LIGHT}
         />
 
         {flyTarget && <FlyTo position={flyTarget.pos} zoom={flyTarget.zoom} />}

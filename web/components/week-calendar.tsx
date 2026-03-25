@@ -118,16 +118,16 @@ export default function WeekCalendar({ tournaments, clubs }: Props) {
       <div className="flex items-center justify-center gap-3 mb-3">
         <button
           onClick={prevWeek}
-          className="px-3 py-1.5 border border-gray-200 rounded-md bg-white text-base hover:bg-gray-50"
+          className="px-3 py-1.5 border border-gray-200 dark:border-[#333] rounded-md bg-white dark:bg-[#222] text-base hover:bg-gray-50 dark:hover:bg-[#2a2a2a]"
         >
           &larr;
         </button>
-        <span className="text-sm font-semibold min-w-[160px] text-center">
+        <span className="text-sm font-semibold min-w-[160px] text-center dark:text-[#f5f5f5]">
           {formatDateShort(weekStart)} – {formatDateShort(weekEnd)}
         </span>
         <button
           onClick={nextWeek}
-          className="px-3 py-1.5 border border-gray-200 rounded-md bg-white text-base hover:bg-gray-50"
+          className="px-3 py-1.5 border border-gray-200 dark:border-[#333] rounded-md bg-white dark:bg-[#222] text-base hover:bg-gray-50 dark:hover:bg-[#2a2a2a]"
         >
           &rarr;
         </button>
@@ -154,28 +154,28 @@ export default function WeekCalendar({ tournaments, clubs }: Props) {
           >
             {/* Header */}
             <div
-              className={`text-center py-2.5 px-2 border border-gray-200 rounded-t-lg text-sm font-semibold ${
+              className={`text-center py-2.5 px-2 border border-gray-200 dark:border-[#333] rounded-t-lg text-sm font-semibold ${
                 day.isToday
                   ? 'bg-accent text-white border-accent'
                   : day.isWeekend
-                    ? 'bg-weekend'
-                    : 'bg-white'
+                    ? 'bg-weekend dark:bg-[#1a2b22]'
+                    : 'bg-white dark:bg-[#222]'
               }`}
             >
-              <div className={`text-xs uppercase tracking-wide ${day.isToday ? 'text-white/80' : 'text-gray-500'}`}>
+              <div className={`text-xs uppercase tracking-wide ${day.isToday ? 'text-white/80' : 'text-gray-500 dark:text-[#a0a0a0]'}`}>
                 {day.dayName}
               </div>
-              <div className="text-lg mt-0.5">{day.dayNum}</div>
+              <div className={`text-lg mt-0.5 ${day.isToday ? '' : 'dark:text-[#f5f5f5]'}`}>{day.dayNum}</div>
             </div>
 
             {/* Body */}
             <div
-              className={`border border-t-0 border-gray-200 rounded-b-lg p-2 min-h-[80px] flex flex-col gap-1.5 ${
-                day.isWeekend ? 'bg-weekend' : ''
+              className={`border border-t-0 border-gray-200 dark:border-[#333] rounded-b-lg p-2 min-h-[80px] flex flex-col gap-1.5 ${
+                day.isWeekend ? 'bg-weekend dark:bg-[#1a2b22]' : 'dark:bg-[#1a1a1a]'
               }`}
             >
               {day.tournaments.length === 0 ? (
-                <div className="text-center py-4 text-gray-400 text-sm italic">—</div>
+                <div className="text-center py-4 text-gray-400 dark:text-[#555] text-sm italic">—</div>
               ) : (
                 day.tournaments.map((t) => (
                   <CalendarCard key={t.id} tournament={t} club={clubs[t.club_id || '']} />

@@ -138,16 +138,16 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
 
           {/* Prizes */}
           {raw.prizes && Array.isArray(raw.prizes) && raw.prizes.length > 0 && (
-            <div className="bg-prize-bg border border-prize-border rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-prize-text uppercase tracking-wide mb-3">
+            <div className="bg-prize-bg dark:bg-[#2a2410] border border-prize-border dark:border-[#5a4a18] rounded-lg p-5">
+              <h2 className="text-sm font-semibold text-prize-text dark:text-[#e8c84a] uppercase tracking-wide mb-3">
                 Preise
               </h2>
-              <ul className="space-y-1.5 text-sm">
+              <ul className="space-y-1.5 text-sm dark:text-[#d4d4d4]">
                 {raw.prizes.map((p, i) => (
                   <li key={i} className="flex justify-between">
                     <span>{p.category}</span>
                     {p.count > 1 && (
-                      <span className="text-gray-500">{p.count}x</span>
+                      <span className="text-gray-500 dark:text-[#a0a0a0]">{p.count}x</span>
                     )}
                   </li>
                 ))}
