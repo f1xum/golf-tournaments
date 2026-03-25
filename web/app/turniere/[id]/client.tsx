@@ -6,6 +6,7 @@ import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
 import SaveTournamentButton from '@/components/save-tournament-button';
+import AddToCalendarButton from '@/components/add-to-calendar-button';
 
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
@@ -154,8 +155,11 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
             </div>
           )}
 
-          {/* Save button */}
-          <SaveTournamentButton tournamentId={t.id} size="lg" />
+          {/* Save + Calendar buttons */}
+          <div className="space-y-2">
+            <SaveTournamentButton tournamentId={t.id} size="lg" />
+            <AddToCalendarButton tournament={t} club={club} size="lg" />
+          </div>
 
           {/* External link (subtle) */}
           {t.source_url && (

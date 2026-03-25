@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { Bookmark, Calendar, ChevronDown } from 'lucide-react';
+import AddToCalendarButton from '@/components/add-to-calendar-button';
 
 interface Props {
   upcoming: Tournament[];
@@ -145,6 +146,9 @@ function ToggleSection({
                         )}
                       </div>
                     </div>
+
+                    {/* Calendar button */}
+                    <AddToCalendarButton tournament={t} club={club} size="sm" />
                   </Link>
                 );
               })}
