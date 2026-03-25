@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Calendar, Building2, Map, LogIn, UserCircle, Bell } from 'lucide-react';
+import { Home, Calendar, Building2, Map, LogIn, UserCircle, Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 const links = [
+  { href: '/', label: 'Home', icon: Home, exact: true },
   { href: '/turniere', label: 'Turniere', icon: Calendar },
   { href: '/clubs', label: 'Clubs', icon: Building2 },
   { href: '/karte', label: 'Karte', icon: Map },
@@ -42,13 +43,14 @@ export default function Nav() {
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
-        <Link href="/" className="font-bold text-lg text-accent hover:opacity-80">
-          The Pin
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80">
+          <Image src="/logo.png" alt="The Pin" width={28} height={28} className="rounded" />
+          <span className="font-bold text-lg text-accent">The Pin</span>
         </Link>
 
         <div className="hidden sm:flex gap-1">
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
+          {links.map(({ href, label, icon: Icon, exact }) => {
+            const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}

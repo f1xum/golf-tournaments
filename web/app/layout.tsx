@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
+import RouteProgress from '@/components/route-progress';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className="antialiased">
+        <RouteProgress />
         <Nav />
         <main className="max-w-4xl mx-auto px-4 pb-24 sm:pb-20">{children}</main>
         <BottomNav />

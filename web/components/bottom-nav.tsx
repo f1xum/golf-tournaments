@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Building2, Map, UserCircle } from 'lucide-react';
+import { Home, Calendar, Building2, Map, UserCircle } from 'lucide-react';
 
 const tabs = [
+  { href: '/', label: 'Home', icon: Home, exact: true },
   { href: '/turniere', label: 'Turniere', icon: Calendar },
   { href: '/clubs', label: 'Clubs', icon: Building2 },
   { href: '/karte', label: 'Karte', icon: Map },
@@ -17,9 +18,9 @@ export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 sm:hidden">
       <div className="flex items-stretch h-16 max-w-lg mx-auto">
-        {tabs.map(({ href, label, icon: Icon }) => {
-          const active = href === '/profil'
-            ? pathname.startsWith('/profil')
+        {tabs.map(({ href, label, icon: Icon, exact }) => {
+          const active = exact
+            ? pathname === href
             : pathname.startsWith(href);
 
           return (

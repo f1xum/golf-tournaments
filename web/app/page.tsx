@@ -2,40 +2,27 @@ import Link from 'next/link';
 import { Calendar, Building2, Map, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Tournament, Profile } from '@/lib/types';
-import { todayISO, formatDateFull, formatToLabel } from '@/lib/utils';
+import { todayISO, formatDateFull, formatToLabel, distanceKm } from '@/lib/utils';
 
 export const revalidate = 3600;
-
-function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 async function getData() {
   const supabase = await createClient();
   const today = todayISO();
 
-  const [tournamentsRes, clubsRes, userRes] = await Promise.all([
+  // Fetch counts + clubs + user in parallel — no need to fetch all tournaments for counts
+  const [countRes, clubsRes, userRes] = await Promise.all([
     supabase
       .from('tournaments')
-      .select('*')
-      .gte('date_start', today)
-      .order('date_start', { ascending: true })
-      .limit(5000),
+      .select('id', { count: 'exact', head: true })
+      .gte('date_start', today),
     supabase
       .from('golf_clubs')
       .select('id, name, city, latitude, longitude'),
     supabase.auth.getUser(),
   ]);
 
-  const tournaments = (tournamentsRes.data ?? []) as Tournament[];
+  const tournamentCount = countRes.count ?? 0;
   const clubs: Record<string, GolfClub> = {};
   (clubsRes.data ?? []).forEach((c) => {
     clubs[c.id] = c as GolfClub;
@@ -47,27 +34,38 @@ async function getData() {
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('handicap, home_club_id')
       .eq('id', user.id)
       .single();
 
     if (profile) {
-      const p = profile as Profile;
+      const p = profile as Pick<Profile, 'handicap' | 'home_club_id'>;
       const homeClub = p.home_club_id ? clubs[p.home_club_id] : null;
       const hasHomeCoords = homeClub?.latitude && homeClub?.longitude;
 
-      // Filter by HCP match
-      let candidates = tournaments.filter((t) => {
-        if (p.handicap != null) {
-          if (t.max_handicap != null && p.handicap > t.max_handicap) return false;
-          if (t.min_handicap != null && p.handicap < t.min_handicap) return false;
-        }
-        return true;
-      });
+      // Only fetch the columns we need for "Für dich", limited set
+      let query = supabase
+        .from('tournaments')
+        .select('id, name, date_start, club_id, format, max_handicap, min_handicap')
+        .gte('date_start', today)
+        .order('date_start', { ascending: true });
 
-      // Add distance and sort by it if home club has coordinates
+      // Apply HCP filter at DB level if possible
+      if (p.handicap != null) {
+        query = query.or(`max_handicap.is.null,max_handicap.gte.${p.handicap}`);
+        query = query.or(`min_handicap.is.null,min_handicap.lte.${p.handicap}`);
+      }
+
+      // If no home club coords, just take first 8
+      if (!hasHomeCoords) {
+        query = query.limit(8);
+      }
+
+      const { data: candidates } = await query;
+      const tournamentList = (candidates ?? []) as Tournament[];
+
       if (hasHomeCoords) {
-        const withDist = candidates.map((t) => {
+        const withDist = tournamentList.map((t) => {
           const club = clubs[t.club_id || ''];
           const dist =
             club?.latitude && club?.longitude
@@ -78,13 +76,13 @@ async function getData() {
         withDist.sort((a, b) => a.distance - b.distance);
         forYou = withDist.slice(0, 8);
       } else {
-        forYou = candidates.slice(0, 8);
+        forYou = tournamentList;
       }
     }
   }
 
   return {
-    tournamentCount: tournaments.length,
+    tournamentCount,
     clubCount: Object.keys(clubs).length,
     clubs,
     forYou,

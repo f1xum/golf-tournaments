@@ -10,19 +10,22 @@ async function getData() {
   const supabase = await createClient();
   const today = todayISO();
 
+  // Select only the columns needed for filtering + display (skip source_url, registration_url etc.)
+  const tournamentColumns = 'id,name,club_id,date_start,date_end,format,rounds,max_handicap,min_handicap,entry_fee,age_class,gender,description,raw_data';
+
   const [upcomingRes, pastRes, clubsRes, userRes] = await Promise.all([
     supabase
       .from('tournaments')
-      .select('*')
+      .select(tournamentColumns)
       .gte('date_start', today)
       .order('date_start', { ascending: true })
       .limit(5000),
     supabase
       .from('tournaments')
-      .select('*')
+      .select(tournamentColumns)
       .lt('date_start', today)
       .order('date_start', { ascending: false })
-      .limit(500),
+      .limit(200),
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude'),

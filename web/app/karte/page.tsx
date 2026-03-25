@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { GolfClub, Tournament } from '@/lib/types';
+import { GolfClub } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import MapWrapper from './client';
 
@@ -9,28 +9,26 @@ async function getData() {
   const supabase = await createClient();
   const today = todayISO();
 
-  const [clubsRes, tournamentsRes] = await Promise.all([
+  // Fetch clubs and tournament counts per club in parallel
+  // Only fetch club_id for counting — not full tournament objects
+  const [clubsRes, countsRes] = await Promise.all([
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude,website')
       .not('latitude', 'is', null),
     supabase
       .from('tournaments')
-      .select('id,name,date_start,club_id')
+      .select('club_id')
       .gte('date_start', today)
-      .order('date_start', { ascending: true })
-      .limit(5000),
+      .not('club_id', 'is', null),
   ]);
 
   const clubs = (clubsRes.data ?? []) as GolfClub[];
-  const tournaments = (tournamentsRes.data ?? []) as Tournament[];
 
-  // Count upcoming tournaments per club
+  // Count in JS — minimal data transferred (just club_id strings)
   const tournamentCounts: Record<string, number> = {};
-  tournaments.forEach((t) => {
-    if (t.club_id) {
-      tournamentCounts[t.club_id] = (tournamentCounts[t.club_id] || 0) + 1;
-    }
+  (countsRes.data ?? []).forEach((t: { club_id: string }) => {
+    tournamentCounts[t.club_id] = (tournamentCounts[t.club_id] || 0) + 1;
   });
 
   return { clubs, tournamentCounts };

@@ -1,7 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Only refresh auth session on routes that need it
+const AUTH_ROUTES = ['/profil', '/benachrichtigungen', '/einstellungen'];
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip auth refresh for public pages — massive perf win
+  const needsAuth = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  if (!needsAuth) return NextResponse.next();
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,7 +34,6 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh the session so it doesn't expire
   await supabase.auth.getUser();
 
   return supabaseResponse;
