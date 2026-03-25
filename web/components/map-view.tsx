@@ -80,8 +80,8 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
     <div className="relative h-full w-full">
       <MapContainer center={center} zoom={8} className="h-full w-full" scrollWheelZoom>
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
         />
 
         {flyTarget && <FlyTo position={flyTarget.pos} zoom={flyTarget.zoom} />}

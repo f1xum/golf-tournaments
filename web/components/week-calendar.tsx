@@ -58,7 +58,10 @@ export default function WeekCalendar({ tournaments, clubs }: Props) {
     cols.forEach((col, i) => {
       if (col.dataset.date === todayStr) targetIdx = i;
     });
-    cols[targetIdx]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    const target = cols[targetIdx];
+    if (target) {
+      board.scrollLeft = target.offsetLeft - board.offsetLeft;
+    }
   }, [weekStart]);
 
   // Group tournaments by date

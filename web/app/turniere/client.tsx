@@ -90,6 +90,11 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }
   });
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
 
+  // Scroll to top on mount to prevent focus jumping to calendar
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Request geolocation when distance filter is set to 'location'
   useEffect(() => {
     if (filters.distance !== 'all' && filters.distanceFrom === 'location' && !userPos) {
