@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Profile } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 import {
   Settings,
   Bookmark,
@@ -9,7 +10,9 @@ import {
   MapPin,
   Trophy,
   ChevronRight,
+  LogOut,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   profile: Profile | null;
@@ -99,6 +102,7 @@ export default function UserHub({
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeColor="red"
         />
+        <LogoutButton />
       </div>
     </div>
   );
@@ -147,4 +151,25 @@ function MenuLink({
   }
 
   return <Link href={href}>{content}</Link>;
+}
+
+function LogoutButton() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  }
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+    >
+      <LogOut size={18} className="text-gray-400 shrink-0" />
+      <span className="flex-1 text-sm font-medium text-gray-500">Abmelden</span>
+    </button>
+  );
 }

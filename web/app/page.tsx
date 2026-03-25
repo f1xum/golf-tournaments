@@ -126,8 +126,7 @@ export default async function HomePage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles size={16} className="text-accent" />
-            <h2 className="text-base font-bold">Für dich</h2>
-            <p className="text-xs text-gray-800 mt-0.5">Vorgeschlagene Turniere in der Nähe von dir, oder deines Heimatclubs</p>
+            <h2 className="text-base font-bold">Turniere für dich</h2>
           </div>
 
           <div className="space-y-2">
