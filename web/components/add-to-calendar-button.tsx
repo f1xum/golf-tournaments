@@ -90,7 +90,7 @@ export default function AddToCalendarButton({ tournament, club, size = 'lg' }: P
 
   return (
     <button
-      onClick={handleDownload}
+      onClick={handleAdd}
       className="shrink-0 p-1 text-gray-300 hover:text-accent transition-colors"
       title="Zum Kalender hinzufügen"
     >
