@@ -116,7 +116,7 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
               icon={accentIcon}
             >
               <Popup>
-                <div className="text-sm">
+                <a href={`/clubs/${club.id}`} className="block text-sm no-underline text-inherit">
                   <div className="font-semibold">{club.name}</div>
                   {club.city && <div className="text-gray-500">{club.city}</div>}
                   {dist != null && (
@@ -124,15 +124,12 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
                       {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`} entfernt
                     </div>
                   )}
-                  <a
-                    href={`/clubs/${club.id}`}
-                    className="mt-1 text-accent font-medium hover:underline block"
-                  >
+                  <div className="mt-1 text-accent font-medium">
                     {count > 0
                       ? `${count} kommende Turnier${count !== 1 ? 'e' : ''} →`
                       : 'Club ansehen →'}
-                  </a>
-                </div>
+                  </div>
+                </a>
               </Popup>
             </Marker>
           );
