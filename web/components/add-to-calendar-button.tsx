@@ -65,26 +65,21 @@ function generateICS(t: Tournament, club?: GolfClub | null): string {
 }
 
 export default function AddToCalendarButton({ tournament, club, size = 'lg' }: Props) {
-  function handleDownload(e: React.MouseEvent) {
+  function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
 
     const ics = generateICS(tournament, club);
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${tournament.name.replace(/[^a-zA-Z0-9äöüÄÖÜß ]/g, '').trim()}.ics`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
+    // Use data URI — on iOS/Android this opens the calendar app directly
+    const uri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    window.open(uri, '_blank');
   }
 
   if (size === 'lg') {
     return (
       <button
-        onClick={handleDownload}
+        onClick={handleAdd}
         className="w-full flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg border-2 border-accent text-accent hover:bg-accent-light transition-colors"
       >
         <CalendarPlus size={18} />
