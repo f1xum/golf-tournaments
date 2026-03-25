@@ -148,7 +148,7 @@ function ToggleSection({
                     </div>
 
                     {/* Calendar button */}
-                    <AddToCalendarButton tournament={t} club={club} size="sm" />
+                    <AddToCalendarButton tournamentId={t.id} size="sm" />
                   </Link>
                 );
               })}

@@ -158,7 +158,7 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
           {/* Save + Calendar buttons */}
           <div className="space-y-2">
             <SaveTournamentButton tournamentId={t.id} size="lg" />
-            <AddToCalendarButton tournament={t} club={club} size="lg" />
+            <AddToCalendarButton tournamentId={t.id} size="lg" />
           </div>
 
           {/* External link (subtle) */}
