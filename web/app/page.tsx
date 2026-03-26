@@ -182,10 +182,10 @@ export default async function HomePage() {
 
       {/* For You CTA — not logged in */}
       {!isLoggedIn && (
-        <div className="mb-8 bg-accent-light border border-accent/20 rounded-xl p-5 text-center">
+        <div className="mb-8 bg-accent-light dark:bg-[#1a2b22] border border-accent/20 dark:border-[#2d4a3a] rounded-xl p-5 text-center">
           <Sparkles size={20} className="text-accent mx-auto mb-2" />
           <h2 className="text-base font-bold mb-1">Für dich</h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 dark:text-[#b8b8b8] mb-4">
             Erstelle einen Account um für dich passende Turniere zu finden
           </p>
           <Link
