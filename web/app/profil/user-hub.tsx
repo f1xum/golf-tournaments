@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Settings,
   Bookmark,
+  Heart,
   Bell,
   MapPin,
   Trophy,
@@ -19,6 +20,7 @@ interface Props {
   email: string;
   homeClubName: string | null;
   savedCount: number;
+  savedClubCount: number;
   unreadCount: number;
 }
 
@@ -27,6 +29,7 @@ export default function UserHub({
   email,
   homeClubName,
   savedCount,
+  savedClubCount,
   unreadCount,
 }: Props) {
   const initials = (profile?.display_name || email)
@@ -85,6 +88,16 @@ export default function UserHub({
 
       {/* Quick links */}
       <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+        <MenuLink
+          href="#saved-clubs"
+          icon={Heart}
+          label="Favoriten-Clubs"
+          badge={savedClubCount > 0 ? savedClubCount : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById('saved-clubs')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
         <MenuLink
           href="#saved"
           icon={Bookmark}

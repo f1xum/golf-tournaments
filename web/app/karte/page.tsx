@@ -9,9 +9,7 @@ async function getData() {
   const supabase = await createClient();
   const today = todayISO();
 
-  // Fetch clubs and tournament counts per club in parallel
-  // Only fetch club_id for counting — not full tournament objects
-  const [clubsRes, countsRes] = await Promise.all([
+  const [clubsRes, countsRes, userRes] = await Promise.all([
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude,website')
@@ -21,21 +19,30 @@ async function getData() {
       .select('club_id')
       .gte('date_start', today)
       .not('club_id', 'is', null),
+    supabase.auth.getUser(),
   ]);
 
   const clubs = (clubsRes.data ?? []) as GolfClub[];
 
-  // Count in JS — minimal data transferred (just club_id strings)
   const tournamentCounts: Record<string, number> = {};
   (countsRes.data ?? []).forEach((t: { club_id: string }) => {
     tournamentCounts[t.club_id] = (tournamentCounts[t.club_id] || 0) + 1;
   });
 
-  return { clubs, tournamentCounts };
+  let savedClubIds: string[] = [];
+  if (userRes.data?.user) {
+    const { data: saved } = await supabase
+      .from('saved_clubs')
+      .select('club_id')
+      .eq('user_id', userRes.data.user.id);
+    savedClubIds = (saved ?? []).map((r) => r.club_id);
+  }
+
+  return { clubs, tournamentCounts, savedClubIds };
 }
 
 export default async function KartePage() {
-  const { clubs, tournamentCounts } = await getData();
+  const { clubs, tournamentCounts, savedClubIds } = await getData();
 
   return (
     <div className="py-6">
@@ -44,7 +51,7 @@ export default async function KartePage() {
         {clubs.length} Clubs mit Standort
       </p>
       <div className="h-[calc(100vh-260px)] sm:h-[calc(100vh-200px)] min-h-[300px] max-h-[600px] sm:max-h-none rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-        <MapWrapper clubs={clubs} tournamentCounts={tournamentCounts} />
+        <MapWrapper clubs={clubs} tournamentCounts={tournamentCounts} savedClubIds={savedClubIds} />
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ export interface Filters {
   club: string;
   distance: string;       // 'all' | '25' | '50' | '100'
   distanceFrom: string;   // 'location' | 'homeclub'
+  favoriteClubs: string;  // 'all' | 'yes'
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -32,12 +33,14 @@ export const DEFAULT_FILTERS: Filters = {
   club: '',
   distance: 'all',
   distanceFrom: 'location',
+  favoriteClubs: 'all',
 };
 
 interface Props {
   filters: Filters;
   onChange: (filters: Filters) => void;
   hasHomeClub?: boolean;
+  hasFavoriteClubs?: boolean;
 }
 
 function ChipGroup({
@@ -68,7 +71,7 @@ function ChipGroup({
   );
 }
 
-export default function TournamentFilters({ filters, onChange, hasHomeClub }: Props) {
+export default function TournamentFilters({ filters, onChange, hasHomeClub, hasFavoriteClubs }: Props) {
   const activeCount = Object.entries(filters).filter(([k, v]) => {
     if (k === 'region' || k === 'format' || k === 'club') return v !== '';
     if (k === 'distanceFrom') return false;
@@ -108,6 +111,23 @@ export default function TournamentFilters({ filters, onChange, hasHomeClub }: Pr
               ))}
             </select>
           </div>
+
+          {/* Favorite clubs */}
+          {hasFavoriteClubs && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Favoriten-Clubs
+              </label>
+              <ChipGroup
+                options={[
+                  { value: 'all', label: 'Alle Clubs' },
+                  { value: 'yes', label: 'Nur Favoriten' },
+                ]}
+                value={filters.favoriteClubs}
+                onChange={(v) => update({ favoriteClubs: v })}
+              />
+            </div>
+          )}
 
           {/* Distance */}
           <div>

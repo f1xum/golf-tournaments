@@ -5,15 +5,18 @@ import Link from 'next/link';
 import { GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { REGIONS } from '@/lib/constants';
-import { MapPin, ChevronRight, Locate } from 'lucide-react';
+import { MapPin, ChevronRight, Locate, Heart } from 'lucide-react';
+import SaveClubButton from '@/components/save-club-button';
 
 interface Props {
   clubs: GolfClub[];
+  savedClubIds: string[];
 }
 
-export default function ClubsClient({ clubs }: Props) {
+export default function ClubsClient({ clubs, savedClubIds }: Props) {
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [sortByDistance, setSortByDistance] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -35,6 +38,7 @@ export default function ClubsClient({ clubs }: Props) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let result = clubs.filter((c) => {
+      if (favoritesOnly && !savedClubIds.includes(c.id)) return false;
       if (region && c.region !== region) return false;
       if (q) {
         const haystack = `${c.name} ${c.city || ''} ${c.address || ''}`.toLowerCase();
@@ -56,7 +60,7 @@ export default function ClubsClient({ clubs }: Props) {
     }
 
     return result;
-  }, [clubs, search, region, sortByDistance, userPos]);
+  }, [clubs, search, region, favoritesOnly, savedClubIds, sortByDistance, userPos]);
 
   const getDistance = (club: GolfClub) => {
     if (!userPos || !club.latitude || !club.longitude) return null;
@@ -84,6 +88,19 @@ export default function ClubsClient({ clubs }: Props) {
             <option key={r} value={r}>{r}</option>
           ))}
         </select>
+        {savedClubIds.length > 0 && (
+          <button
+            onClick={() => setFavoritesOnly(!favoritesOnly)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              favoritesOnly
+                ? 'bg-red-50 text-red-500 border border-red-200'
+                : 'text-gray-500 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <Heart size={14} fill={favoritesOnly ? 'currentColor' : 'none'} />
+            Favoriten
+          </button>
+        )}
       </div>
 
       {/* Location / sort bar */}
@@ -137,6 +154,7 @@ export default function ClubsClient({ clubs }: Props) {
                   )}
                 </div>
               </div>
+              <SaveClubButton clubId={club.id} size="sm" />
               <ChevronRight size={16} className="shrink-0 text-gray-300" />
             </Link>
           );

@@ -7,6 +7,7 @@ import { GolfClub, Tournament } from '@/lib/types';
 import { MapPin, ExternalLink, Phone, Mail, Calendar, Clock, ChevronDown } from 'lucide-react';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
+import SaveClubButton from '@/components/save-club-button';
 
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
@@ -40,7 +41,10 @@ export default function ClubDetailClient({ club, upcoming, past }: Props) {
       </Link>
 
       {/* Club header */}
-      <h1 className="text-2xl font-bold mb-1">{club.name}</h1>
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <h1 className="text-2xl font-bold">{club.name}</h1>
+        <SaveClubButton clubId={club.id} />
+      </div>
       {(club.city || club.region) && (
         <div className="flex items-center gap-1 text-sm text-gray-500 mb-4">
           <MapPin size={14} />

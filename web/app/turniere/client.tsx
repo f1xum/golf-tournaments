@@ -15,6 +15,7 @@ interface Props {
   past: Tournament[];
   clubs: Record<string, GolfClub>;
   homeClubCoords: [number, number] | null;
+  savedClubIds: string[];
 }
 
 function applyFilters(
@@ -22,10 +23,12 @@ function applyFilters(
   filters: Filters,
   clubs: Record<string, GolfClub>,
   refPoint: [number, number] | null,
+  savedClubIds: string[],
 ) {
   return tournaments.filter((t) => {
     const raw = t.raw_data || {};
 
+    if (filters.favoriteClubs === 'yes' && !savedClubIds.includes(t.club_id || '')) return false;
     if (filters.club && t.club_id !== filters.club) return false;
     if (filters.region) {
       const club = clubs[t.club_id || ''];
@@ -78,7 +81,7 @@ function applyFilters(
   });
 }
 
-export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }: Props) {
+export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, savedClubIds }: Props) {
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
@@ -112,13 +115,13 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }
   const refPoint = filters.distanceFrom === 'homeclub' ? homeClubCoords : userPos;
 
   const filteredUpcoming = useMemo(
-    () => applyFilters(upcoming, filters, clubs, refPoint),
-    [upcoming, clubs, filters, refPoint]
+    () => applyFilters(upcoming, filters, clubs, refPoint, savedClubIds),
+    [upcoming, clubs, filters, refPoint, savedClubIds]
   );
 
   const filteredPast = useMemo(
-    () => applyFilters(past, filters, clubs, refPoint),
-    [past, clubs, filters, refPoint]
+    () => applyFilters(past, filters, clubs, refPoint, savedClubIds),
+    [past, clubs, filters, refPoint, savedClubIds]
   );
 
   const activeClub = filters.club ? clubs[filters.club] : null;
@@ -168,6 +171,7 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords }
         filters={filters}
         onChange={setFilters}
         hasHomeClub={!!homeClubCoords}
+        hasFavoriteClubs={savedClubIds.length > 0}
       />
 
       {/* Distance status hint */}

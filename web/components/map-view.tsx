@@ -38,6 +38,20 @@ const accentIcon = L.divIcon({
   popupAnchor: [0, -8],
 });
 
+const favoriteIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    width: 14px; height: 14px;
+    background: #ef4444;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  "></div>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+  popupAnchor: [0, -9],
+});
+
 const userIcon = L.divIcon({
   className: '',
   html: `<div style="
@@ -69,9 +83,10 @@ function FlyTo({ position, zoom }: { position: [number, number]; zoom: number })
 interface Props {
   clubs: GolfClub[];
   tournamentCounts: Record<string, number>;
+  savedClubIds?: string[];
 }
 
-export default function MapView({ clubs, tournamentCounts }: Props) {
+export default function MapView({ clubs, tournamentCounts, savedClubIds = [] }: Props) {
   const center: [number, number] = [48.8, 11.5];
   const isDark = useIsDark();
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
@@ -124,6 +139,7 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
         {clubs.map((club) => {
           if (!club.latitude || !club.longitude) return null;
           const count = tournamentCounts[club.id] || 0;
+          const isFavorite = savedClubIds.includes(club.id);
           const dist = userPos
             ? distanceKm(userPos[0], userPos[1], club.latitude, club.longitude)
             : null;
@@ -131,7 +147,7 @@ export default function MapView({ clubs, tournamentCounts }: Props) {
             <Marker
               key={club.id}
               position={[club.latitude, club.longitude]}
-              icon={accentIcon}
+              icon={isFavorite ? favoriteIcon : accentIcon}
             >
               <Popup>
                 <a href={`/clubs/${club.id}`} className="block text-sm no-underline text-inherit">

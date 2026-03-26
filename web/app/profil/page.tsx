@@ -4,6 +4,7 @@ import { Profile, GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import UserHub from './user-hub';
 import SavedTournaments from './saved-tournaments';
+import SavedClubs from './saved-clubs';
 
 export const metadata = {
   title: 'Mein Bereich – The Pin',
@@ -17,11 +18,15 @@ export default async function ProfilPage() {
 
   const today = todayISO();
 
-  const [{ data: profile }, { data: savedRows }, { count: unreadCount }] = await Promise.all([
+  const [{ data: profile }, { data: savedRows }, { data: savedClubRows }, { count: unreadCount }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('saved_tournaments')
       .select('tournament_id')
+      .eq('user_id', user.id),
+    supabase
+      .from('saved_clubs')
+      .select('club_id')
       .eq('user_id', user.id),
     supabase
       .from('notifications')
@@ -39,6 +44,17 @@ export default async function ProfilPage() {
       .eq('id', profile.home_club_id)
       .single();
     homeClubName = club?.name ?? null;
+  }
+
+  // Saved clubs
+  const savedClubIds = (savedClubRows ?? []).map((r) => r.club_id);
+  let favoriteClubs: GolfClub[] = [];
+  if (savedClubIds.length > 0) {
+    const { data: clubList } = await supabase
+      .from('golf_clubs')
+      .select('id, name, city, region')
+      .in('id', savedClubIds);
+    favoriteClubs = (clubList ?? []) as GolfClub[];
   }
 
   const savedIds = (savedRows ?? []).map((r) => r.tournament_id);
@@ -85,8 +101,11 @@ export default async function ProfilPage() {
         email={user.email ?? ''}
         homeClubName={homeClubName}
         savedCount={savedIds.length}
+        savedClubCount={savedClubIds.length}
         unreadCount={unreadCount ?? 0}
       />
+
+      <SavedClubs clubs={favoriteClubs} />
 
       <SavedTournaments
         upcoming={upcomingTournaments}

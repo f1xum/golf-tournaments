@@ -71,7 +71,7 @@ export default function NotificationList({ notifications: initial, tournaments }
               className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
                 n.read
                   ? 'bg-white border-gray-200'
-                  : 'bg-accent-light/50 border-accent/20'
+                  : 'bg-accent-light/50 border-accent/20 dark:bg-[#1a2b22] dark:border-[#2d4a3a]'
               }`}
             >
               <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${

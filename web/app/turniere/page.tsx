@@ -37,21 +37,29 @@ async function getData() {
     clubs[c.id] = c as GolfClub;
   });
 
-  // Get home club coordinates if logged in
+  // Get home club coordinates + saved clubs if logged in
   let homeClubCoords: [number, number] | null = null;
+  let savedClubIds: string[] = [];
   const user = userRes.data?.user;
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('home_club_id')
-      .eq('id', user.id)
-      .single();
+    const [{ data: profile }, { data: savedClubs }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('home_club_id')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('saved_clubs')
+        .select('club_id')
+        .eq('user_id', user.id),
+    ]);
     if (profile?.home_club_id) {
       const hc = clubs[profile.home_club_id];
       if (hc?.latitude && hc?.longitude) {
         homeClubCoords = [hc.latitude, hc.longitude];
       }
     }
+    savedClubIds = (savedClubs ?? []).map((r) => r.club_id);
   }
 
   return {
@@ -59,11 +67,12 @@ async function getData() {
     past: (pastRes.data ?? []) as Tournament[],
     clubs,
     homeClubCoords,
+    savedClubIds,
   };
 }
 
 export default async function TurnierePage() {
-  const { upcoming, past, clubs, homeClubCoords } = await getData();
+  const { upcoming, past, clubs, homeClubCoords, savedClubIds } = await getData();
 
   return (
     <div className="py-6">
@@ -72,7 +81,7 @@ export default async function TurnierePage() {
         Alle Golfturniere in Bayern
       </p>
       <Suspense>
-        <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} />
+        <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} savedClubIds={savedClubIds} />
       </Suspense>
     </div>
   );
