@@ -108,6 +108,12 @@ class PCCaddieScraper(BaseScraper):
             club = self._find_club(club_name, all_clubs_db)
             club_id = club["id"] if club else None
 
+            # Store pccaddie_id and fetch course info
+            if club_id and (not club or club.get("pccaddie_id") != pcc_id):
+                self._update_club_pccaddie_id(club_id, pcc_id)
+            if club_id:
+                self._scrape_course_info(club_id, pcc_id)
+
             rows = []
             for t_id in tournament_ids:
                 detail_url = (
@@ -369,6 +375,59 @@ class PCCaddieScraper(BaseScraper):
                 i += 1
 
         return fields
+
+    def _update_club_pccaddie_id(self, club_id: str, pcc_id: str) -> None:
+        """Store the PC CADDIE ID on the club record."""
+        try:
+            self.db.client.table("golf_clubs").update(
+                {"pccaddie_id": pcc_id}
+            ).eq("id", club_id).execute()
+        except Exception as e:
+            print(f"  ⚠ Failed to store pccaddie_id: {e}")
+
+    def _scrape_course_info(self, club_id: str, pcc_id: str) -> None:
+        """Fetch the tee time page and extract available courses (9/18 hole)."""
+        url = f"{PCCADDIE_BASE}/{pcc_id}/app.php?cat=tt_timetable_course"
+        try:
+            html = self.fetch(url)
+        except Exception:
+            return  # Tee time page not available for all clubs
+
+        soup = BeautifulSoup(html, "html.parser")
+        select = soup.find("select", id="timetable_selection_alias")
+        if not select:
+            return
+
+        courses = []
+        has_9 = False
+        has_18 = False
+
+        for opt in select.find_all("option"):
+            name = opt.get_text(strip=True)
+            if not name:
+                continue
+
+            holes = None
+            if "18" in name:
+                holes = 18
+                has_18 = True
+            elif "9" in name:
+                holes = 9
+                has_9 = True
+
+            courses.append({"name": name, "holes": holes})
+
+        if courses:
+            try:
+                import json
+                self.db.client.table("golf_clubs").update({
+                    "courses": json.dumps(courses),
+                    "has_9_holes": has_9,
+                    "has_18_holes": has_18,
+                }).eq("id", club_id).execute()
+                print(f"  📍 Courses: {', '.join(c['name'] for c in courses)}")
+            except Exception as e:
+                print(f"  ⚠ Failed to store course info: {e}")
 
     def _find_club(self, club_name: str, club_by_name: dict) -> dict | None:
         if club_name in club_by_name:

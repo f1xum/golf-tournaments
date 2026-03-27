@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronDown } from 'lucide-react';
 import { REGIONS, FORMAT_OPTIONS } from '@/lib/constants';
 
 export interface Filters {
@@ -85,8 +86,11 @@ export default function TournamentFilters({ filters, onChange, hasHomeClub, hasF
   return (
     <div className="mb-4">
       <details className="group bg-white border border-gray-200 rounded-lg">
-        <summary className="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-medium select-none">
-          <span>Filter</span>
+        <summary className="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-medium select-none list-none [&::-webkit-details-marker]:hidden">
+          <div className="flex items-center gap-2">
+            <ChevronDown size={16} className="text-gray-400 transition-transform group-open:rotate-180" />
+            <span>Filter</span>
+          </div>
           {activeCount > 0 && (
             <span className="bg-accent text-white text-xs px-2 py-0.5 rounded-full">
               {activeCount}

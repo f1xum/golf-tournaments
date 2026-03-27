@@ -1,6 +1,6 @@
 """Enrich golf club data using Google Maps Places API.
 
-For each club, searches Google Maps by name + "Bayern" and extracts:
+For each club, searches Google Maps by name + "Deutschland" and extracts:
 - website, phone, address, postal_code, city, latitude, longitude
 
 Requires GOOGLE_MAPS_API_KEY in .env with Places API enabled.
@@ -26,10 +26,10 @@ PLACE_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 def find_place_id(client: httpx.Client, name: str, api_key: str) -> str | None:
     """Find the Google Place ID for a golf club by name."""
     resp = client.get(FIND_PLACE_URL, params={
-        "input": f"{name} Golf Bayern",
+        "input": f"{name} Golf Deutschland",
         "inputtype": "textquery",
         "fields": "place_id",
-        "locationbias": "circle:200000@48.1351,11.5820",  # 200km around Munich
+        "locationbias": "circle:500000@51.1657,10.4515",  # 500km around center of Germany
         "key": api_key,
     })
     data = resp.json()
@@ -107,19 +107,15 @@ def main():
         name = club["name"]
         club_id = club["id"]
 
-        # Check which fields are missing
+        # Always process clubs — website should always be refreshed
+        # Check which fields are missing (for logging)
         missing_fields = []
-        for field in ["website", "phone", "address", "postal_code", "city"]:
+        for field in ["phone", "address", "postal_code", "city"]:
             if not club.get(field) or club[field].strip() == "":
                 missing_fields.append(field)
-
-        # Also check coordinates
         if not club.get("latitude") or not club.get("longitude"):
             missing_fields.append("coordinates")
-
-        if not missing_fields:
-            skipped += 1
-            continue
+        missing_fields.append("website (refresh)")
 
         print(f"[Google] {name} — missing: {', '.join(missing_fields)}")
 
@@ -141,7 +137,8 @@ def main():
             time.sleep(0.2)
             continue
 
-        # Only update fields that are currently missing
+        # Always overwrite website; only fill missing for other fields
+        always_overwrite = {"website"}
         updates = {}
         for key, val in info.items():
             if key == "latitude" and club.get("latitude"):
@@ -151,7 +148,7 @@ def main():
             if key in ("latitude", "longitude"):
                 updates[key] = val
                 continue
-            if not club.get(key) or club[key].strip() == "":
+            if key in always_overwrite or not club.get(key) or club[key].strip() == "":
                 updates[key] = val
 
         if updates:

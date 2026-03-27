@@ -57,7 +57,7 @@ export default function Nav() {
                 href={href}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-accent-light text-accent'
+                    ? 'bg-accent-light text-accent dark:bg-[#1a3329] dark:text-[#4ead6e]'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
@@ -75,7 +75,7 @@ export default function Nav() {
                 href="/benachrichtigungen"
                 className={`relative flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname === '/benachrichtigungen'
-                    ? 'bg-accent-light text-accent'
+                    ? 'bg-accent-light text-accent dark:bg-[#1a3329] dark:text-[#4ead6e]'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
                 title="Benachrichtigungen"
@@ -91,7 +91,7 @@ export default function Nav() {
                 href="/profil"
                 className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname.startsWith('/profil')
-                    ? 'bg-accent-light text-accent'
+                    ? 'bg-accent-light text-accent dark:bg-[#1a3329] dark:text-[#4ead6e]'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
@@ -104,7 +104,7 @@ export default function Nav() {
               href="/login"
               className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === '/login'
-                  ? 'bg-accent-light text-accent'
+                  ? 'bg-accent-light text-accent dark:bg-[#1a3329] dark:text-[#4ead6e]'
                   : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >

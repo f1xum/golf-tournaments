@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
-import { REGIONS } from '@/lib/constants';
-import { MapPin, ChevronRight, Locate, Heart } from 'lucide-react';
+import { MapPin, ChevronRight, Locate } from 'lucide-react';
 import SaveClubButton from '@/components/save-club-button';
+import ClubFiltersPanel, { ClubFilters, DEFAULT_CLUB_FILTERS } from '@/components/club-filters';
 
 interface Props {
   clubs: GolfClub[];
@@ -15,8 +15,7 @@ interface Props {
 
 export default function ClubsClient({ clubs, savedClubIds }: Props) {
   const [search, setSearch] = useState('');
-  const [region, setRegion] = useState('');
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [filters, setFilters] = useState<ClubFilters>(DEFAULT_CLUB_FILTERS);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [sortByDistance, setSortByDistance] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -38,8 +37,15 @@ export default function ClubsClient({ clubs, savedClubIds }: Props) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let result = clubs.filter((c) => {
-      if (favoritesOnly && !savedClubIds.includes(c.id)) return false;
-      if (region && c.region !== region) return false;
+      if (filters.favorites === 'yes' && !savedClubIds.includes(c.id)) return false;
+      if (filters.region && c.region !== filters.region) return false;
+      if (filters.tournaments === 'yes' && !c.has_public_tournaments) return false;
+      if (filters.holes === '9' && !c.has_9_holes) return false;
+      if (filters.holes === '18' && !c.has_18_holes) return false;
+      if (filters.distance !== 'all' && userPos && c.latitude && c.longitude) {
+        const dist = distanceKm(userPos[0], userPos[1], c.latitude, c.longitude);
+        if (dist > Number(filters.distance)) return false;
+      }
       if (q) {
         const haystack = `${c.name} ${c.city || ''} ${c.address || ''}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -60,7 +66,7 @@ export default function ClubsClient({ clubs, savedClubIds }: Props) {
     }
 
     return result;
-  }, [clubs, search, region, favoritesOnly, savedClubIds, sortByDistance, userPos]);
+  }, [clubs, search, filters, savedClubIds, sortByDistance, userPos]);
 
   const getDistance = (club: GolfClub) => {
     if (!userPos || !club.latitude || !club.longitude) return null;
@@ -69,39 +75,24 @@ export default function ClubsClient({ clubs, savedClubIds }: Props) {
 
   return (
     <>
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      {/* Search */}
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Club oder Stadt suchen..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
         />
-        <select
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
-        >
-          <option value="">Alle Regionen</option>
-          {REGIONS.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
-        {savedClubIds.length > 0 && (
-          <button
-            onClick={() => setFavoritesOnly(!favoritesOnly)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              favoritesOnly
-                ? 'bg-red-50 text-red-500 border border-red-200'
-                : 'text-gray-500 border border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            <Heart size={14} fill={favoritesOnly ? 'currentColor' : 'none'} />
-            Favoriten
-          </button>
-        )}
       </div>
+
+      {/* Filters */}
+      <ClubFiltersPanel
+        filters={filters}
+        onChange={setFilters}
+        hasFavorites={savedClubIds.length > 0}
+        hasLocation={!!userPos}
+      />
 
       {/* Location / sort bar */}
       <div className="flex items-center justify-between mb-4">

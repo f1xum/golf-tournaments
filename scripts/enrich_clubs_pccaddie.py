@@ -57,10 +57,13 @@ class PCCaddieClubEnricher(BaseScraper):
                 "website": "website",
                 "city": "city",
             }
+            # Fields that should always be overwritten (even if already set)
+            always_overwrite = {"website"}
+
             for info_key, db_key in field_map.items():
                 new_val = info.get(info_key)
                 old_val = club.get(db_key)
-                if new_val and (not old_val or old_val.strip() == ""):
+                if new_val and (db_key in always_overwrite or not old_val or old_val.strip() == ""):
                     updates[db_key] = new_val
 
             if updates:
