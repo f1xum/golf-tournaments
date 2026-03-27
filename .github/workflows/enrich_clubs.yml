@@ -1,0 +1,40 @@
+name: Enrich Club Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Data source'
+        required: true
+        default: 'pccaddie'
+        type: choice
+        options:
+          - pccaddie
+          - google
+          - both
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Enrich from PC CADDIE
+        if: inputs.source == 'pccaddie' || inputs.source == 'both'
+        run: python scripts/enrich_clubs_pccaddie.py
+
+      - name: Enrich from Google Maps
+        if: inputs.source == 'google' || inputs.source == 'both'
+        run: python scripts/enrich_clubs_google.py

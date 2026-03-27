@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_key: str = ""
     anthropic_api_key: str = ""
+    google_maps_api_key: str = ""
     nominatim_user_agent: str = "bavaria-golf-app"
 
     # Scraping defaults
