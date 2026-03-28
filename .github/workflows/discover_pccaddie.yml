@@ -1,4 +1,4 @@
-name: Discover PC CADDIE IDs
+name: Discover Tournament Platform IDs
 
 on:
   schedule:
@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: pip install .
 
-      - name: Discover PC CADDIE IDs from club websites
+      - name: Discover platform IDs from club websites
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

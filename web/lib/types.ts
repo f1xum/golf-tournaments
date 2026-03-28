@@ -14,6 +14,7 @@ export interface GolfClub {
   cms_type: string | null;
   has_public_tournaments: boolean;
   pccaddie_id: string | null;
+  nexxchange_id: string | null;
   courses: { name: string; holes: number | null }[] | null;
   has_9_holes: boolean;
   has_18_holes: boolean;

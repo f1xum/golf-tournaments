@@ -53,6 +53,16 @@ class Database:
             {"latitude": lat, "longitude": lng}
         ).eq("id", club_id).execute()
 
+    def get_clubs_with_nexxchange_id(self) -> list[dict]:
+        """Return all clubs that have a Nexxchange issuer ID stored."""
+        result = (
+            self.client.table("golf_clubs")
+            .select("id,name,nexxchange_id")
+            .not_.is_("nexxchange_id", "null")
+            .execute()
+        )
+        return result.data
+
     def get_clubs_with_pccaddie_id(self) -> list[dict]:
         """Return all clubs that have a PC CADDIE ID stored."""
         result = (
