@@ -13,13 +13,6 @@ DGV_CALENDAR_URLS = [
     "https://serviceportal.dgv-intranet.de/files/pdf1/turnierkalender-2026.pdf",
 ]
 
-# Bavarian regions / keywords to filter tournaments
-BAVARIA_KEYWORDS = [
-    "bayern", "bayerisch", "bgv", "münchen", "munich", "nürnberg", "nuremberg",
-    "augsburg", "regensburg", "würzburg", "ingolstadt", "passau", "rosenheim",
-    "oberbayern", "niederbayern", "schwaben", "oberpfalz", "oberfranken",
-    "mittelfranken", "unterfranken",
-]
 
 
 class DGVTournamentsScraper(BaseScraper):
@@ -66,11 +59,7 @@ class DGVTournamentsScraper(BaseScraper):
 
             pdf_path.unlink(missing_ok=True)
 
-            # Filter for Bavarian tournaments
             for raw in raw_tournaments:
-                if not self._is_bavarian(raw):
-                    continue
-
                 try:
                     tournament = self._raw_to_tournament(raw, url)
                     if tournament:
@@ -79,7 +68,7 @@ class DGVTournamentsScraper(BaseScraper):
                     if hasattr(self, "_ctx"):
                         self._ctx.errors.append(f"Parse error: {e}")
 
-        print(f"[DGV] Found {len(all_tournaments)} Bavarian tournaments.")
+        print(f"[DGV] Found {len(all_tournaments)} tournaments.")
 
         # Match venues to clubs and upsert
         clubs = {c["name"]: c for c in self.db.get_all_clubs()}
@@ -100,13 +89,6 @@ class DGVTournamentsScraper(BaseScraper):
             self._ctx.items_created = len(all_tournaments)
 
         print(f"[DGV] Done. {len(all_tournaments)} tournaments upserted.")
-
-    def _is_bavarian(self, raw: dict) -> bool:
-        """Check if a tournament is in Bavaria based on venue/name."""
-        searchable = " ".join(
-            str(v) for v in raw.values() if v
-        ).lower()
-        return any(kw in searchable for kw in BAVARIA_KEYWORDS)
 
     def _raw_to_tournament(self, raw: dict, source_url: str) -> Tournament | None:
         name = raw.get("name")

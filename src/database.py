@@ -53,6 +53,16 @@ class Database:
             {"latitude": lat, "longitude": lng}
         ).eq("id", club_id).execute()
 
+    def get_clubs_with_pccaddie_id(self) -> list[dict]:
+        """Return all clubs that have a PC CADDIE ID stored."""
+        result = (
+            self.client.table("golf_clubs")
+            .select("id,name,pccaddie_id")
+            .not_.is_("pccaddie_id", "null")
+            .execute()
+        )
+        return result.data
+
     def find_club_by_name(self, name: str) -> dict | None:
         """Fuzzy match club by name (case-insensitive contains)."""
         result = (

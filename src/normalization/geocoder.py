@@ -37,7 +37,8 @@ def geocode_clubs(db: Database | None = None) -> None:
                 success += 1
             else:
                 # Retry with just city + "Golf" as fallback
-                fallback_query = f"Golf {club.get('city', '')}, Bayern, Deutschland"
+                region = club.get('region') or 'Deutschland'
+                fallback_query = f"Golf {club.get('city', '')}, {region}, Deutschland"
                 time.sleep(1.1)
                 location = geolocator.geocode(fallback_query, country_codes="de")
                 if location:
@@ -73,5 +74,9 @@ def _build_query(club: dict) -> str | None:
     if not parts:
         return None
 
-    parts.append("Bayern, Deutschland")
+    region = club.get("region")
+    if region:
+        parts.append(f"{region}, Deutschland")
+    else:
+        parts.append("Deutschland")
     return ", ".join(parts)

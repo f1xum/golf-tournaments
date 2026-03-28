@@ -17,8 +17,10 @@ from src.models.tournament import Tournament, TournamentSource
 from src.scrapers.base import BaseScraper
 
 
-# Known PC CADDIE club IDs for Bavarian clubs
-PCCADDIE_CLUBS: dict[str, str] = {
+# Seed list of known PC CADDIE club IDs (Bavaria).
+# The scraper merges these with any pccaddie_id values stored in the DB,
+# so newly discovered IDs are picked up automatically.
+_SEED_CLUBS: dict[str, str] = {
     "Golfclub München Eichenried": "0498820",
     "Golfclub Erding-Grünbach e.V.": "0498821",
     "Golf Club Erlangen e.V.": "0498822",
@@ -81,9 +83,31 @@ class PCCaddieScraper(BaseScraper):
 
     def __init__(self, club_ids: dict[str, str] | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.club_ids = club_ids or PCCADDIE_CLUBS
+        self._explicit_ids = club_ids
+
+    def _build_club_ids(self) -> dict[str, str]:
+        """Merge seed list with pccaddie_ids stored in the database."""
+        if self._explicit_ids is not None:
+            return self._explicit_ids
+
+        # Start with seed list
+        merged: dict[str, str] = dict(_SEED_CLUBS)
+
+        # Add clubs from DB that have a pccaddie_id
+        db_clubs = self.db.get_clubs_with_pccaddie_id()
+        for club in db_clubs:
+            name = club["name"]
+            pcc_id = club["pccaddie_id"]
+            if pcc_id and name not in merged:
+                merged[name] = pcc_id
+
+        return merged
 
     def run(self) -> None:
+        self.club_ids = self._build_club_ids()
+        print(f"[PC CADDIE] Scraping {len(self.club_ids)} clubs "
+              f"({len(_SEED_CLUBS)} seed + {len(self.club_ids) - len(_SEED_CLUBS)} from DB)")
+
         all_clubs_db = {c["name"]: c for c in self.db.get_all_clubs()}
         total_found = 0
         total_created = 0

@@ -1,0 +1,26 @@
+name: Discover PC CADDIE IDs
+
+on:
+  schedule:
+    - cron: "0 5 * * 0"  # Weekly on Sundays at 5 AM UTC
+  workflow_dispatch:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install .
+
+      - name: Discover PC CADDIE IDs from club websites
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/discover_pccaddie_ids.py

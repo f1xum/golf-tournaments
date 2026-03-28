@@ -1,9 +1,7 @@
-name: Scrape Club Websites
+name: Scrape Club Websites (retired)
 
 on:
-  schedule:
-    - cron: "0 7 * * *"  # Daily at 7 AM UTC
-  workflow_dispatch:
+  workflow_dispatch:  # Manual only — uses Claude API ($)
 
 jobs:
   scrape:
