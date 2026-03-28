@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { extractHoles } from '@/lib/tournament-utils';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
-import { ChevronDown, Clock } from 'lucide-react';
+import { ChevronDown, Clock, Lock } from 'lucide-react';
 
 interface Props {
   upcoming: Tournament[];
@@ -16,6 +17,7 @@ interface Props {
   clubs: Record<string, GolfClub>;
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
+  isLoggedIn: boolean;
 }
 
 function applyFilters(
@@ -81,12 +83,18 @@ function applyFilters(
   });
 }
 
-export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, savedClubIds }: Props) {
+export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
-  const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [view, setView] = useState<'calendar' | 'list'>(isLoggedIn ? 'calendar' : 'list');
   const [showPast, setShowPast] = useState(true);
+  const [showLoginToast, setShowLoginToast] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
+  }, []);
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     club: clubParam,
@@ -146,13 +154,22 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, 
       {/* View toggle */}
       <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
         <button
-          onClick={() => setView('calendar')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+          onClick={() => {
+            if (isLoggedIn) {
+              setView('calendar');
+            } else {
+              setShowLoginToast(true);
+              if (toastTimer.current) clearTimeout(toastTimer.current);
+              toastTimer.current = setTimeout(() => setShowLoginToast(false), 4000);
+            }
+          }}
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
             view === 'calendar'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
-          }`}
+          } ${!isLoggedIn ? 'opacity-60' : ''}`}
         >
+          {!isLoggedIn && <Lock size={12} />}
           Kalender
         </button>
         <button
@@ -166,6 +183,22 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, 
           Liste
         </button>
       </div>
+
+      {/* Login toast for calendar */}
+      {showLoginToast && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[10001] animate-in fade-in slide-in-from-bottom-2">
+          <div className="bg-gray-900 text-white text-sm rounded-lg px-4 py-2.5 shadow-lg flex items-center gap-3 whitespace-nowrap">
+            <span>Melde dich an für die Kalender-Ansicht</span>
+            <Link
+              href="/login"
+              className="text-accent-light font-medium hover:underline"
+              onClick={() => setShowLoginToast(false)}
+            >
+              Anmelden →
+            </Link>
+          </div>
+        </div>
+      )}
 
       <TournamentFilters
         filters={filters}

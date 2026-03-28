@@ -96,7 +96,7 @@ export default function TournamentCard({ tournament: t, club }: Props) {
 
       {/* Prizes */}
       {prizeText && (
-        <div className="mt-2 px-3 py-2 bg-prize-bg border border-prize-border rounded-md text-sm">
+        <div className="mt-2 px-3 py-2 bg-prize-bg border border-prize-border rounded-md text-sm dark:bg-[#2a2410] dark:border-[#5a4a18] dark:text-[#e8c84a]">
           <span className="mr-1">🏆</span>
           <span className="font-semibold">Preise:</span> {prizeText}
         </div>

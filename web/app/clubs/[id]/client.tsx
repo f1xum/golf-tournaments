@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { GolfClub, Tournament } from '@/lib/types';
-import { MapPin, ExternalLink, Phone, Mail, Calendar, Clock, ChevronDown } from 'lucide-react';
+import { MapPin, ExternalLink, Phone, Mail, Calendar, Clock, ChevronDown, Flag } from 'lucide-react';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
 import SaveClubButton from '@/components/save-club-button';
@@ -41,16 +41,31 @@ export default function ClubDetailClient({ club, upcoming, past }: Props) {
       </Link>
 
       {/* Club header */}
-      <div className="flex items-start justify-between gap-3 mb-1">
-        <h1 className="text-2xl font-bold">{club.name}</h1>
-        <SaveClubButton clubId={club.id} />
-      </div>
-      {(club.city || club.region) && (
-        <div className="flex items-center gap-1 text-sm text-gray-500 mb-4">
-          <MapPin size={14} />
-          <span>{[club.city, club.region].filter(Boolean).join(', ')}</span>
+      <div className="flex items-start gap-4 mb-4">
+        {club.logo_url ? (
+          <img
+            src={club.logo_url}
+            alt={`${club.name} Logo`}
+            className="w-14 h-14 rounded-lg object-contain bg-white border border-gray-200 shrink-0"
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-lg bg-accent-light border border-accent/20 shrink-0 flex items-center justify-center dark:bg-[#1a3329] dark:border-[#2d4a3a]">
+            <Flag size={24} className="text-accent" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <h1 className="text-2xl font-bold">{club.name}</h1>
+            <SaveClubButton clubId={club.id} />
+          </div>
+          {(club.city || club.region) && (
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <MapPin size={14} />
+              <span>{[club.city, club.region].filter(Boolean).join(', ')}</span>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Club info */}

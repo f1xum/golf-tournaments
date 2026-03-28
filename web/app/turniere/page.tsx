@@ -68,11 +68,12 @@ async function getData() {
     clubs,
     homeClubCoords,
     savedClubIds,
+    isLoggedIn: !!user,
   };
 }
 
 export default async function TurnierePage() {
-  const { upcoming, past, clubs, homeClubCoords, savedClubIds } = await getData();
+  const { upcoming, past, clubs, homeClubCoords, savedClubIds, isLoggedIn } = await getData();
 
   return (
     <div className="py-6">
@@ -81,7 +82,7 @@ export default async function TurnierePage() {
         Alle Golfturniere in Bayern
       </p>
       <Suspense>
-        <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} savedClubIds={savedClubIds} />
+        <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} savedClubIds={savedClubIds} isLoggedIn={isLoggedIn} />
       </Suspense>
     </div>
   );

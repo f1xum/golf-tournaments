@@ -59,12 +59,14 @@ class GGGClubsScraper(BaseScraper):
     source_name = "ggg_clubs"
 
     def run(self) -> None:
-        all_clubs: list[GolfClub] = []
+        total_scraped = 0
+        total_upserted = 0
 
         for bl_slug in BUNDESLAENDER:
             bl_name = BUNDESLAND_NAMES[bl_slug]
             print(f"\n[GGG] === {bl_name} ===")
 
+            bl_clubs: list[GolfClub] = []
             page = 1
             while True:
                 url = f"{BASE_URL}/golfclubs/suche/{bl_slug}/?sort_field=c.title&page={page}"
@@ -84,7 +86,7 @@ class GGGClubsScraper(BaseScraper):
                     try:
                         club = self._scrape_club(slug, bl_name, listing_info)
                         if club:
-                            all_clubs.append(club)
+                            bl_clubs.append(club)
                             print(f"  ✓ {club.name} ({club.city})")
                     except Exception as e:
                         print(f"  ✗ Failed: {slug}: {e}")
@@ -97,25 +99,27 @@ class GGGClubsScraper(BaseScraper):
                     break
                 page += 1
 
-        # Deduplicate by (name, city)
-        seen = set()
-        unique_clubs = []
-        for c in all_clubs:
-            key = (c.name, c.city)
-            if key not in seen:
-                seen.add(key)
-                unique_clubs.append(c)
+            # Upsert per Bundesland so progress is saved incrementally
+            if bl_clubs:
+                seen = set()
+                unique = []
+                for c in bl_clubs:
+                    key = (c.name, c.city)
+                    if key not in seen:
+                        seen.add(key)
+                        unique.append(c)
 
-        # Upsert to database
-        if unique_clubs:
-            rows = [c.to_db_row() for c in unique_clubs]
-            self.db.upsert_clubs(rows)
+                rows = [c.to_db_row() for c in unique]
+                self.db.upsert_clubs(rows)
+                total_scraped += len(bl_clubs)
+                total_upserted += len(unique)
+                print(f"[GGG] {bl_name}: {len(unique)} clubs saved to DB")
 
         if hasattr(self, "_ctx"):
-            self._ctx.items_found = len(all_clubs)
-            self._ctx.items_created = len(unique_clubs)
+            self._ctx.items_found = total_scraped
+            self._ctx.items_created = total_upserted
 
-        print(f"\n[GGG] Done. {len(unique_clubs)} unique clubs scraped.")
+        print(f"\n[GGG] Done. {total_upserted} unique clubs scraped across all states.")
 
     def _parse_listing_page(self, html: str) -> list[tuple[str, dict]]:
         """Extract club slugs and basic info from listing page."""

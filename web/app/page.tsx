@@ -99,7 +99,7 @@ export default async function HomePage() {
       <div className="flex items-center gap-3 mb-5">
         <img src="/logo.png" alt="The Pin" width={50} height={50} className="rounded" />
         <div>
-          <h2 className="text-base font-bold">The Pin: Deine App für Golfturniere in Bayern (und bald ganz Deutschland)</h2>
+          <h2 className="text-base font-bold">The Pin: Deine App für Golfturniere in Deutschland</h2>
         </div>
       </div>
 
