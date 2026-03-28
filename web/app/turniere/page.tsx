@@ -18,7 +18,7 @@ async function getData() {
   const today = todayISO();
 
   // Select only the columns needed for filtering + display (skip source_url, registration_url etc.)
-  const tournamentColumns = 'id,name,club_id,date_start,date_end,format,rounds,max_handicap,min_handicap,entry_fee,age_class,gender,description,raw_data';
+  const tournamentColumns = 'id,name,club_id,date_start,date_end,format,rounds,max_handicap,min_handicap,entry_fee,age_class,gender,description,raw_data,source';
 
   const [upcomingRes, pastRes, clubsRes, userRes] = await Promise.all([
     supabase

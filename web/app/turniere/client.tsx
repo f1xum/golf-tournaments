@@ -34,7 +34,8 @@ function applyFilters(
     if (filters.club && t.club_id !== filters.club) return false;
     if (filters.region) {
       const club = clubs[t.club_id || ''];
-      if (!club || club.region !== filters.region) return false;
+      const region = club?.region || (t.source === 'bgv' ? 'Bayern' : null);
+      if (region !== filters.region) return false;
     }
     // Distance
     if (filters.distance !== 'all' && refPoint) {
