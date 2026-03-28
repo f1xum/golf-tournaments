@@ -116,10 +116,17 @@ def main():
             club = db.find_club_by_name(venue)
 
         if club:
-            db.client.table("tournaments").update(
-                {"club_id": club["id"]}
-            ).eq("id", t["id"]).execute()
-            matched += 1
+            try:
+                db.client.table("tournaments").update(
+                    {"club_id": club["id"]}
+                ).eq("id", t["id"]).execute()
+                matched += 1
+            except Exception:
+                # Update would create a duplicate — a row with this
+                # (name, date, club_id, source) already exists.
+                # Delete the NULL row instead.
+                db.client.table("tournaments").delete().eq("id", t["id"]).execute()
+                deleted += 1
         else:
             failed_venues[venue] = failed_venues.get(venue, 0) + 1
 
