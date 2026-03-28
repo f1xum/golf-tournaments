@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 function GoogleIcon() {
   return (
@@ -20,6 +20,9 @@ function GoogleIcon() {
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -33,6 +36,12 @@ export default function RegisterPage() {
 
     if (password.length < 6) {
       setError('Das Passwort muss mindestens 6 Zeichen lang sein.');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Die Passwörter stimmen nicht überein.');
       setLoading(false);
       return;
     }
@@ -51,7 +60,7 @@ export default function RegisterPage() {
     // If session exists, user is logged in immediately (no email confirmation required)
     if (data.session) {
       setTimeout(() => {
-        router.push('/profil/einstellungen');
+        router.push('/willkommen');
         router.refresh();
       }, 2000);
     } else {
@@ -102,7 +111,7 @@ export default function RegisterPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/profil/einstellungen`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/willkommen`,
       },
     });
   }
@@ -144,15 +153,48 @@ export default function RegisterPage() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Passwort
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            placeholder="Mindestens 6 Zeichen"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              placeholder="Mindestens 6 Zeichen"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Passwort bestätigen
+          </label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              placeholder="Passwort wiederholen"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
 
         {error && (

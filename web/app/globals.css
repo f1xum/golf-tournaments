@@ -110,6 +110,17 @@ html.dark .bg-gray-900 { background-color: #0a0a0a !important; }
   height: 100%;
 }
 
+/* Checkmark draw animation */
+@keyframes draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.animate-draw {
+  stroke-dasharray: 24;
+  animation: draw 0.4s ease-out 0.3s forwards;
+  stroke-dashoffset: 24;
+}
+
 /* Dark mode popup card */
 html.dark .leaflet-popup-content-wrapper {
   background-color: #2a2a2a !important;
