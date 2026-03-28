@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, Building2, Map, Sparkles, UserPlus } from 'lucide-react';
+import { Calendar, Building2, Map, Sparkles, UserPlus, MapPin, Target, Heart, SlidersHorizontal } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Tournament, Profile } from '@/lib/types';
 import { todayISO, formatDateFull, formatToLabel, distanceKm } from '@/lib/utils';
@@ -32,52 +32,94 @@ async function getData() {
   let forYou: (Tournament & { distance?: number })[] = [];
 
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('handicap, home_club_id')
-      .eq('id', user.id)
-      .single();
+    const [{ data: profile }, { data: savedClubs }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('handicap, home_club_id, recommendation_max_distance, recommendation_prefer_hcp, recommendation_formats')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('saved_clubs')
+        .select('club_id')
+        .eq('user_id', user.id),
+    ]);
 
     if (profile) {
-      const p = profile as Pick<Profile, 'handicap' | 'home_club_id'>;
+      const p = profile as Pick<Profile, 'handicap' | 'home_club_id' | 'recommendation_max_distance' | 'recommendation_prefer_hcp' | 'recommendation_formats'>;
       const homeClub = p.home_club_id ? clubs[p.home_club_id] : null;
       const hasHomeCoords = homeClub?.latitude && homeClub?.longitude;
+      const savedClubIds = new Set((savedClubs ?? []).map((r) => r.club_id));
 
-      // Only fetch the columns we need for "Für dich", limited set
+      // Fetch upcoming tournaments for recommendations
       let query = supabase
         .from('tournaments')
-        .select('id, name, date_start, club_id, format, max_handicap, min_handicap')
+        .select('id, name, date_start, club_id, format, max_handicap, min_handicap, entry_fee, raw_data')
         .gte('date_start', today)
         .order('date_start', { ascending: true });
 
-      // Apply HCP filter at DB level if possible
+      // Apply HCP filter at DB level
       if (p.handicap != null) {
         query = query.or(`max_handicap.is.null,max_handicap.gte.${p.handicap}`);
         query = query.or(`min_handicap.is.null,min_handicap.lte.${p.handicap}`);
       }
 
-      // If no home club coords, just take first 4
-      if (!hasHomeCoords) {
+      if (!hasHomeCoords && savedClubIds.size === 0) {
         query = query.limit(4);
       }
 
       const { data: candidates } = await query;
       const tournamentList = (candidates ?? []) as Tournament[];
 
-      if (hasHomeCoords) {
-        const withDist = tournamentList.map((t) => {
-          const club = clubs[t.club_id || ''];
-          const dist =
-            club?.latitude && club?.longitude
-              ? distanceKm(homeClub.latitude!, homeClub.longitude!, club.latitude, club.longitude)
-              : 9999;
-          return { ...t, distance: dist };
-        });
-        withDist.sort((a, b) => a.distance - b.distance);
-        forYou = withDist.slice(0, 4);
-      } else {
-        forYou = tournamentList;
-      }
+      // Score each tournament for relevance using user preferences
+      const maxDistPref = p.recommendation_max_distance;
+      const preferHcp = p.recommendation_prefer_hcp;
+      const prefFormats = p.recommendation_formats;
+
+      const scored = tournamentList.map((t) => {
+        const club = clubs[t.club_id || ''];
+        let score = 0;
+
+        // Distance from home club (closer = better)
+        let dist = 9999;
+        if (hasHomeCoords && club?.latitude && club?.longitude) {
+          dist = distanceKm(homeClub.latitude!, homeClub.longitude!, club.latitude, club.longitude);
+          if (dist <= 25) score += 40;
+          else if (dist <= 50) score += 30;
+          else if (dist <= 100) score += 20;
+          else if (dist <= 200) score += 10;
+        }
+
+        // Filter by max distance preference
+        if (maxDistPref && dist > maxDistPref) score -= 100;
+
+        // Favorite club boost
+        if (t.club_id && savedClubIds.has(t.club_id)) score += 30;
+
+        // Home club boost
+        if (t.club_id && t.club_id === p.home_club_id) score += 25;
+
+        // Has free slots (still open)
+        const raw = t.raw_data || {};
+        if (typeof raw.free_slots === 'number' && raw.free_slots > 0) score += 10;
+
+        // HCP-relevant preference
+        if (preferHcp && raw.hcp_relevant) score += 20;
+
+        // Preferred format boost
+        if (prefFormats && prefFormats.length > 0 && t.format) {
+          if (prefFormats.includes(t.format)) score += 15;
+        }
+
+        // Sooner tournaments get a small boost (within 2 weeks)
+        const daysAway = (new Date(t.date_start).getTime() - Date.now()) / 86400000;
+        if (daysAway <= 14) score += 10;
+        else if (daysAway <= 30) score += 5;
+
+        return { ...t, distance: dist, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score || a.distance - b.distance);
+      forYou = scored.slice(0, 4);
     }
   }
 
@@ -182,19 +224,55 @@ export default async function HomePage() {
 
       {/* For You CTA — not logged in */}
       {!isLoggedIn && (
-        <div className="mb-8 bg-accent-light dark:bg-[#1a2b22] border border-accent/20 dark:border-[#2d4a3a] rounded-xl p-5 text-center">
-          <Sparkles size={20} className="text-accent mx-auto mb-2" />
-          <h2 className="text-base font-bold mb-1">Für dich</h2>
-          <p className="text-sm text-gray-600 dark:text-[#b8b8b8] mb-4">
-            Erstelle einen Account um für dich passende Turniere zu finden
-          </p>
-          <Link
-            href="/registrieren"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
-          >
-            <UserPlus size={16} />
-            Kostenlos registrieren
-          </Link>
+        <div className="mb-8 bg-accent-light dark:bg-[#1a2b22] border border-accent/20 dark:border-[#2d4a3a] rounded-xl p-6">
+          <div className="text-center mb-4">
+            <Sparkles size={22} className="text-accent mx-auto mb-2" />
+            <h2 className="text-lg font-bold mb-1">Turniere, die zu dir passen</h2>
+            <p className="text-sm text-gray-600 dark:text-[#b8b8b8]">
+              Personalisierte Empfehlungen basierend auf deinem Profil
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-5 text-left">
+            <div className="flex items-start gap-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-2.5">
+              <MapPin size={14} className="text-accent shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-semibold">In deiner Nähe</div>
+                <div className="text-[11px] text-gray-500">Turniere rund um deinen Heimatclub</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-2.5">
+              <Target size={14} className="text-accent shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-semibold">Passend zu deinem HCP</div>
+                <div className="text-[11px] text-gray-500">Nur Turniere, die du spielen kannst</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-2.5">
+              <Heart size={14} className="text-accent shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-semibold">Deine Favoriten</div>
+                <div className="text-[11px] text-gray-500">Turniere bei Clubs, die du liebst</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-2.5">
+              <SlidersHorizontal size={14} className="text-accent shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-semibold">Deine Spielformen</div>
+                <div className="text-[11px] text-gray-500">Stableford, Scramble & mehr</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/registrieren"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
+            >
+              <UserPlus size={16} />
+              Kostenlos registrieren
+            </Link>
+          </div>
         </div>
       )}
 

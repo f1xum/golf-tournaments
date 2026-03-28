@@ -2,7 +2,7 @@ name: Discover Tournament Platform IDs
 
 on:
   schedule:
-    - cron: "0 5 * * 0"  # Weekly on Sundays at 5 AM UTC
+    - cron: "0 5 * * *"  # Daily at 5 AM UTC
   workflow_dispatch:
 
 jobs:

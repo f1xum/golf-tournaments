@@ -68,6 +68,9 @@ export interface Profile {
   notify_new_nearby: boolean;
   notify_hcp_match: boolean;
   reminder_days_before: number;
+  recommendation_max_distance: number | null;
+  recommendation_prefer_hcp: boolean;
+  recommendation_formats: string[] | null;
 }
 
 export type NotificationType =

@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip auth refresh for public pages — massive perf win
-  const needsAuth = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  const needsAuth = pathname === '/' || AUTH_ROUTES.some((r) => pathname.startsWith(r));
   if (!needsAuth) return NextResponse.next();
 
   let supabaseResponse = NextResponse.next({ request });

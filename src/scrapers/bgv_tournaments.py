@@ -6,6 +6,7 @@ from datetime import date, datetime
 from bs4 import BeautifulSoup, Tag
 
 from src.config import settings
+from src.club_matching import build_club_index, match_club_name
 from src.models.tournament import Tournament, TournamentFormat, TournamentSource
 from src.scrapers.base import BaseScraper
 
@@ -23,14 +24,19 @@ class BGVTournamentsScraper(BaseScraper):
         print(f"[BGV Tournaments] Found {len(tournaments)} tournaments.")
 
         # Match venues to clubs in the database
-        clubs = {c["name"]: c for c in self.db.get_all_clubs()}
+        all_clubs = self.db.get_all_clubs()
+        clubs_by_name = {c["name"]: c for c in all_clubs}
+        club_index = build_club_index(all_clubs)
 
         rows = []
         for t in tournaments:
             row = t.to_db_row()
             # Try to match venue to a club
             if t.description:
-                club = self._match_club(t.description, clubs)
+                club = match_club_name(t.description, club_index, clubs_by_name)
+                if not club:
+                    # Fallback: DB ilike search
+                    club = self.db.find_club_by_name(t.description)
                 if club:
                     row["club_id"] = club["id"]
             rows.append(row)
@@ -150,17 +156,3 @@ class BGVTournamentsScraper(BaseScraper):
         match = re.search(pattern, text)
         return match.group(1).strip() if match else None
 
-    def _match_club(self, venue_name: str, clubs: dict[str, dict]) -> dict | None:
-        """Try to match a venue name to a club in the database."""
-        # Direct match
-        if venue_name in clubs:
-            return clubs[venue_name]
-
-        # Fuzzy: check if venue is contained in any club name or vice versa
-        venue_lower = venue_name.lower()
-        for club_name, club in clubs.items():
-            if venue_lower in club_name.lower() or club_name.lower() in venue_lower:
-                return club
-
-        # Fallback: DB fuzzy search
-        return self.db.find_club_by_name(venue_name)

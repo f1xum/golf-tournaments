@@ -3,6 +3,7 @@
 import tempfile
 from pathlib import Path
 
+from src.club_matching import build_club_index, match_club_name
 from src.models.tournament import Tournament, TournamentSource
 from src.parsers.llm_extractor import extract_tournaments_with_llm
 from src.parsers.pdf_parser import extract_tournaments_from_pdf
@@ -71,12 +72,16 @@ class DGVTournamentsScraper(BaseScraper):
         print(f"[DGV] Found {len(all_tournaments)} tournaments.")
 
         # Match venues to clubs and upsert
-        clubs = {c["name"]: c for c in self.db.get_all_clubs()}
+        all_clubs = self.db.get_all_clubs()
+        clubs_by_name = {c["name"]: c for c in all_clubs}
+        club_index = build_club_index(all_clubs)
         rows = []
         for t in all_tournaments:
             row = t.to_db_row()
             if t.raw_data and t.raw_data.get("venue"):
-                club = self._match_club(t.raw_data["venue"], clubs)
+                club = match_club_name(t.raw_data["venue"], club_index, clubs_by_name)
+                if not club:
+                    club = self.db.find_club_by_name(t.raw_data["venue"])
                 if club:
                     row["club_id"] = club["id"]
             rows.append(row)
@@ -111,9 +116,3 @@ class DGVTournamentsScraper(BaseScraper):
             raw_data=raw,
         )
 
-    def _match_club(self, venue_name: str, clubs: dict[str, dict]) -> dict | None:
-        venue_lower = venue_name.lower()
-        for club_name, club in clubs.items():
-            if venue_lower in club_name.lower() or club_name.lower() in venue_lower:
-                return club
-        return self.db.find_club_by_name(venue_name)

@@ -21,7 +21,7 @@ export interface Filters {
 }
 
 export const DEFAULT_FILTERS: Filters = {
-  region: 'Bayern',
+  region: '',
   format: '',
   fee: 'all',
   slots: 'all',

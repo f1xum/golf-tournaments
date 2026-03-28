@@ -1,10 +1,17 @@
 import { Suspense } from 'react';
+import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import TurniereClient from './client';
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: 'Turnierkalender – Alle Golfturniere in Deutschland',
+  description: 'Alle aktuellen Golfturniere in Deutschland auf einen Blick. Filtere nach Bundesland, Spielform, Nenngeld und mehr. Kostenlos auf The Pin.',
+  alternates: { canonical: 'https://thepin.app/turniere' },
+};
 
 async function getData() {
   const supabase = await createClient();

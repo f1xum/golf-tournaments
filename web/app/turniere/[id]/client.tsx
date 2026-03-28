@@ -2,6 +2,10 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import {
+  Calendar, Clock, Users, Euro, Trophy, MapPin, ExternalLink,
+  Flag, Globe, Phone, Mail, ChevronRight, CircleAlert,
+} from 'lucide-react';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
@@ -11,7 +15,7 @@ import AddToCalendarButton from '@/components/add-to-calendar-button';
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
   loading: () => (
-    <div className="h-[300px] bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+    <div className="h-[250px] bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
       Karte wird geladen...
     </div>
   ),
@@ -34,17 +38,19 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
       ? ` – ${formatDateFull(t.date_end)}`
       : '';
 
-  const slotsText =
-    raw.max_participants
-      ? raw.free_slots !== null && raw.free_slots !== undefined
-        ? `${raw.free_slots} / ${raw.max_participants} frei`
-        : `${raw.max_participants} Plätze`
-      : null;
+  const isPast = new Date(t.date_start + 'T00:00:00') < new Date(new Date().toDateString());
+
+  const freeSlots = raw.free_slots;
+  const maxParticipants = raw.max_participants;
+  const slotsLow = typeof freeSlots === 'number' && freeSlots > 0 && freeSlots <= 10;
 
   const sourceLabel =
     t.source === 'club_website' ? 'PC CADDIE' :
     t.source === 'bgv' ? 'BGV' :
     t.source === 'dgv' ? 'DGV' : 'Quelle';
+
+  // Registration URL: prefer explicit, fallback to source_url for club_website source
+  const registrationUrl = t.registration_url || (t.source === 'club_website' ? t.source_url : null);
 
   return (
     <>
@@ -56,27 +62,126 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
         ← Zurück zur Übersicht
       </Link>
 
-      {/* Header */}
-      <h1 className="text-2xl font-bold mb-2">{t.name}</h1>
+      {/* Hero header */}
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold leading-tight">{t.name}</h1>
+          <SaveTournamentButton tournamentId={t.id} size="md" />
+        </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <span className="text-sm font-semibold text-accent">{dateStr}{endStr}</span>
-        {formatLabel && (
-          <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded font-medium">
-            {formatLabel}
-          </span>
+        {/* Club name link */}
+        {club && (
+          <Link
+            href={`/clubs/${club.id}`}
+            className="text-sm text-gray-500 hover:text-accent transition-colors mt-1 inline-flex items-center gap-1"
+          >
+            {club.logo_url ? (
+              <img src={club.logo_url} alt="" className="w-4 h-4 rounded object-contain" />
+            ) : (
+              <Flag size={12} className="text-gray-400" />
+            )}
+            {club.name}{club.city ? ` · ${club.city}` : ''}
+          </Link>
         )}
-        {holes && (
-          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
-            {holes} Löcher
+
+        {/* Badges */}
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
+            <Calendar size={14} />
+            {dateStr}{endStr}
           </span>
+          {formatLabel && (
+            <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded-full font-medium">
+              {formatLabel}
+            </span>
+          )}
+          {holes && (
+            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full font-medium">
+              {holes} Löcher
+            </span>
+          )}
+          {raw.hcp_relevant && (
+            <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded-full font-medium">
+              HCP-relevant
+            </span>
+          )}
+          {raw.guests_allowed && (
+            <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+              Gäste willkommen
+            </span>
+          )}
+          {isPast && (
+            <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-500 rounded-full font-medium">
+              Beendet
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Quick stats bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {t.entry_fee != null && (
+          <QuickStat icon={<Euro size={16} />} label="Nenngeld" value={`${t.entry_fee} €`} />
         )}
-        {raw.hcp_relevant && (
-          <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded font-medium">
-            HCP-relevant
-          </span>
+        {maxParticipants && (
+          <QuickStat
+            icon={<Users size={16} />}
+            label="Plätze"
+            value={
+              freeSlots !== null && freeSlots !== undefined
+                ? `${freeSlots} / ${maxParticipants} frei`
+                : `${maxParticipants}`
+            }
+            highlight={slotsLow}
+          />
+        )}
+        {meldeschluss && (
+          <QuickStat icon={<Clock size={16} />} label="Meldeschluss" value={meldeschluss} />
+        )}
+        {(t.max_handicap != null || t.min_handicap != null) && (
+          <QuickStat
+            icon={<span className="text-xs font-bold">HCP</span>}
+            label="Handicap"
+            value={
+              t.min_handicap != null && t.max_handicap != null
+                ? `${t.min_handicap} bis ${t.max_handicap}`
+                : t.max_handicap != null
+                ? `bis ${t.max_handicap}`
+                : `ab ${t.min_handicap}`
+            }
+          />
         )}
       </div>
+
+      {/* Slots warning */}
+      {slotsLow && !isPast && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 dark:bg-[#2a2410] border border-amber-200 dark:border-[#5a4a18] rounded-lg mb-6 text-sm">
+          <CircleAlert size={16} className="text-amber-500 shrink-0" />
+          <span className="font-medium text-amber-700 dark:text-[#e8c84a]">
+            Nur noch {freeSlots} {freeSlots === 1 ? 'Platz' : 'Plätze'} frei!
+          </span>
+        </div>
+      )}
+
+      {/* CTA buttons */}
+      {!isPast && (
+        <div className="flex gap-3 mb-6">
+          {registrationUrl && (
+            <a
+              href={registrationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+            >
+              <ExternalLink size={16} />
+              Jetzt anmelden
+            </a>
+          )}
+          <div className={registrationUrl ? 'flex-1' : 'w-full'}>
+            <AddToCalendarButton tournamentId={t.id} size="lg" />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left column: Tournament details (2/3 width) */}
@@ -84,54 +189,34 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
           {/* Details */}
           <div className="bg-white border border-gray-200 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Details
+              Turnierdetails
             </h2>
             <dl className="space-y-3 text-sm">
-              {t.entry_fee != null && (
-                <DetailRow label="Nenngeld" value={`${t.entry_fee} €`} />
-              )}
-              {raw.guests_allowed && (
-                <DetailRow
-                  label="Gäste"
-                  value={
-                    raw.guest_fee
-                      ? `Willkommen (ab ${raw.guest_fee} €)`
-                      : 'Willkommen'
-                  }
-                />
-              )}
-              {!raw.guests_allowed && raw.guests_allowed !== undefined && (
-                <DetailRow label="Gäste" value="Nur Mitglieder" />
-              )}
-              {raw.nenngeld_raw && (
-                <DetailRow label="Nenngeld (Details)" value={String(raw.nenngeld_raw)} />
-              )}
-              {slotsText && <DetailRow label="Plätze" value={slotsText} />}
-              {meldeschluss && <DetailRow label="Meldeschluss" value={meldeschluss} />}
-              {t.gender && <DetailRow label="Geschlecht" value={t.gender} />}
-              {t.age_class && <DetailRow label="Altersklasse" value={t.age_class} />}
-              {t.rounds && <DetailRow label="Runden" value={`${t.rounds}`} />}
-              {holes && <DetailRow label="Löcher" value={`${holes}`} />}
-              {(t.max_handicap != null || t.min_handicap != null) && (
-                <DetailRow
-                  label="Handicap"
-                  value={
-                    t.min_handicap != null && t.max_handicap != null
-                      ? `${t.min_handicap} – ${t.max_handicap}`
-                      : t.max_handicap != null
-                      ? `bis ${t.max_handicap}`
-                      : `ab ${t.min_handicap}`
-                  }
-                />
-              )}
               {raw.spielform && (
                 <DetailRow label="Spielform" value={String(raw.spielform)} />
               )}
               {raw.turnierart && (
                 <DetailRow label="Turnierart" value={String(raw.turnierart)} />
               )}
+              {t.rounds && t.rounds > 1 && <DetailRow label="Runden" value={`${t.rounds}`} />}
+              {holes && <DetailRow label="Löcher" value={`${holes}`} />}
               {raw.hcp_relevant !== undefined && (
                 <DetailRow label="HCP-relevant" value={raw.hcp_relevant ? 'Ja' : 'Nein'} />
+              )}
+              {t.gender && <DetailRow label="Geschlecht" value={t.gender} />}
+              {t.age_class && <DetailRow label="Altersklasse" value={t.age_class} />}
+              {raw.guests_allowed !== undefined && (
+                <DetailRow
+                  label="Gäste"
+                  value={
+                    raw.guests_allowed
+                      ? raw.guest_fee ? `Willkommen (zzgl. ${raw.guest_fee} €)` : 'Willkommen'
+                      : 'Nur Mitglieder'
+                  }
+                />
+              )}
+              {raw.nenngeld_raw && (
+                <DetailRow label="Nenngeld (Details)" value={String(raw.nenngeld_raw)} />
               )}
             </dl>
           </div>
@@ -139,9 +224,12 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
           {/* Prizes */}
           {raw.prizes && Array.isArray(raw.prizes) && raw.prizes.length > 0 && (
             <div className="bg-prize-bg dark:bg-[#2a2410] border border-prize-border dark:border-[#5a4a18] rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-prize-text dark:text-[#e8c84a] uppercase tracking-wide mb-3">
-                Preise
-              </h2>
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy size={16} className="text-prize-text dark:text-[#e8c84a]" />
+                <h2 className="text-sm font-semibold text-prize-text dark:text-[#e8c84a] uppercase tracking-wide">
+                  Preise
+                </h2>
+              </div>
               <ul className="space-y-1.5 text-sm dark:text-[#d4d4d4]">
                 {raw.prizes.map((p, i) => (
                   <li key={i} className="flex justify-between">
@@ -155,13 +243,12 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
             </div>
           )}
 
-          {/* Save + Calendar buttons */}
-          <div className="space-y-2">
+          {/* Save button (for past tournaments or when no registration URL) */}
+          {isPast && (
             <SaveTournamentButton tournamentId={t.id} size="lg" />
-            <AddToCalendarButton tournamentId={t.id} size="lg" />
-          </div>
+          )}
 
-          {/* External link (subtle) */}
+          {/* External link */}
           {t.source_url && (
             <a
               href={t.source_url}
@@ -178,54 +265,105 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
         <div className="space-y-6">
           {/* Club card */}
           {club && (
-            <div className="bg-white border border-gray-200 rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                Golfclub
-              </h2>
-              <div className="text-base font-semibold mb-2">{club.name}</div>
-              <div className="space-y-1.5 text-sm text-gray-600">
-                {club.address && <div>{club.address}</div>}
-                {(club.postal_code || club.city) && (
-                  <div>{[club.postal_code, club.city].filter(Boolean).join(' ')}</div>
+            <Link
+              href={`/clubs/${club.id}`}
+              className="block bg-white border border-gray-200 rounded-lg p-5 hover:border-accent/30 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                  Golfclub
+                </h2>
+                <ChevronRight size={14} className="text-gray-300" />
+              </div>
+
+              <div className="flex items-center gap-3 mb-3">
+                {club.logo_url ? (
+                  <img
+                    src={club.logo_url}
+                    alt={`${club.name} Logo`}
+                    className="w-10 h-10 rounded-lg object-contain bg-white border border-gray-200 shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-accent-light border border-accent/20 shrink-0 flex items-center justify-center dark:bg-[#1a3329] dark:border-[#2d4a3a]">
+                    <Flag size={18} className="text-accent" />
+                  </div>
                 )}
-                {club.region && (
-                  <div className="text-xs text-gray-400">{club.region}</div>
+                <div className="text-base font-semibold leading-snug">{club.name}</div>
+              </div>
+
+              <div className="space-y-1.5 text-sm text-gray-600">
+                {(club.address || club.city) && (
+                  <div className="flex items-start gap-2">
+                    <MapPin size={13} className="text-gray-400 mt-0.5 shrink-0" />
+                    <span>
+                      {club.address && <>{club.address}, </>}
+                      {[club.postal_code, club.city].filter(Boolean).join(' ')}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="mt-3 flex flex-col gap-2 text-sm">
+
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 {club.website && (
-                  <a
-                    href={club.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent hover:underline"
-                  >
-                    Website
-                  </a>
+                  <span className="inline-flex items-center gap-1 text-accent">
+                    <Globe size={12} /> Website
+                  </span>
                 )}
                 {club.phone && (
-                  <a href={`tel:${club.phone}`} className="text-accent hover:underline">
-                    {club.phone}
-                  </a>
+                  <span className="inline-flex items-center gap-1 text-accent">
+                    <Phone size={12} /> {club.phone}
+                  </span>
                 )}
                 {club.email && (
-                  <a href={`mailto:${club.email}`} className="text-accent hover:underline">
-                    {club.email}
-                  </a>
+                  <span className="inline-flex items-center gap-1 text-accent">
+                    <Mail size={12} /> E-Mail
+                  </span>
                 )}
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Map */}
           {club?.latitude && club?.longitude && (
-            <div className="h-[300px] rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+            <div className="h-[250px] rounded-lg overflow-hidden border border-gray-200 shadow-sm">
               <ClubMapMini club={club} />
             </div>
           )}
         </div>
       </div>
     </>
+  );
+}
+
+function QuickStat({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={`rounded-lg border p-3 ${
+      highlight
+        ? 'bg-amber-50 border-amber-200 dark:bg-[#2a2410] dark:border-[#5a4a18]'
+        : 'bg-white border-gray-200'
+    }`}>
+      <div className={`flex items-center gap-1.5 mb-1 ${
+        highlight ? 'text-amber-600 dark:text-[#e8c84a]' : 'text-gray-400'
+      }`}>
+        {icon}
+        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+      </div>
+      <div className={`text-sm font-semibold ${
+        highlight ? 'text-amber-700 dark:text-[#e8c84a]' : 'text-gray-900'
+      }`}>
+        {value}
+      </div>
+    </div>
   );
 }
 

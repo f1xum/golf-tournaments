@@ -1,8 +1,15 @@
+import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub } from '@/lib/types';
 import ClubsClient from './client';
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: 'Golfclubs in Deutschland – Alle Clubs im Überblick',
+  description: 'Über 800 Golfclubs in Deutschland mit Turnierkalender, Kontaktdaten und Karte. Finde deinen Golfclub auf The Pin.',
+  alternates: { canonical: 'https://thepin.app/clubs' },
+};
 
 async function getData() {
   const supabase = await createClient();

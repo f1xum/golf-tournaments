@@ -1,13 +1,39 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
 import RouteProgress from '@/components/route-progress';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'The Pin – Golfturniere in Deutschland',
-  description: 'Finde und speichere Golfturniere in Deutschland',
-  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+  title: {
+    default: 'The Pin – Golfturniere in Deutschland finden & vergleichen',
+    template: '%s | The Pin',
+  },
+  description: 'Finde, vergleiche und speichere Golfturniere in ganz Deutschland. Über 800 Golfclubs, tausende Turniere – kostenlos auf The Pin.',
+  keywords: ['Golfturnier', 'Golf', 'Turniere', 'Deutschland', 'Golfclub', 'Turnierkalender', 'HCP', 'Stableford', 'Golfplatz'],
+  metadataBase: new URL('https://thepin.app'),
+  openGraph: {
+    type: 'website',
+    locale: 'de_DE',
+    url: 'https://thepin.app',
+    siteName: 'The Pin',
+    title: 'The Pin – Golfturniere in Deutschland',
+    description: 'Finde, vergleiche und speichere Golfturniere in ganz Deutschland. Über 800 Golfclubs, tausende Turniere.',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'The Pin – Golfturniere in Deutschland',
+    description: 'Finde, vergleiche und speichere Golfturniere in ganz Deutschland.',
+  },
+  alternates: {
+    canonical: 'https://thepin.app',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

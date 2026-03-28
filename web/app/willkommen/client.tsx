@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, GolfClub } from '@/lib/types';
-import { Flag, Search, ChevronRight, ChevronLeft, Sparkles, MapPin, Trophy, User } from 'lucide-react';
+import { Flag, Search, ChevronRight, ChevronLeft, Sparkles, MapPin, Trophy, User, Target } from 'lucide-react';
+import { FORMAT_LABELS } from '@/lib/constants';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 interface Props {
   profile: Profile | null;
@@ -27,6 +28,11 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
   const [notifyReminder, setNotifyReminder] = useState(true);
   const [notifyNearby, setNotifyNearby] = useState(true);
   const [notifyHcp, setNotifyHcp] = useState(true);
+
+  // Recommendation preferences
+  const [recMaxDistance, setRecMaxDistance] = useState<string>('');
+  const [recPreferHcp, setRecPreferHcp] = useState(false);
+  const [recFormats, setRecFormats] = useState<string[]>([]);
 
   function next() {
     setDirection('forward');
@@ -51,6 +57,9 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
       notify_tournament_reminder: notifyReminder,
       notify_new_nearby: notifyNearby,
       notify_hcp_match: notifyHcp,
+      recommendation_max_distance: recMaxDistance ? parseInt(recMaxDistance) : null,
+      recommendation_prefer_hcp: recPreferHcp,
+      recommendation_formats: recFormats.length > 0 ? recFormats : null,
       updated_at: new Date().toISOString(),
     }).eq('id', user.id);
 
@@ -117,6 +126,18 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
             />
           )}
           {step === 3 && (
+            <RecommendationStep
+              maxDistance={recMaxDistance}
+              preferHcp={recPreferHcp}
+              formats={recFormats}
+              onMaxDistanceChange={setRecMaxDistance}
+              onPreferHcpChange={setRecPreferHcp}
+              onFormatsChange={setRecFormats}
+              onNext={next}
+              onBack={back}
+            />
+          )}
+          {step === 4 && (
             <NotificationStep
               notifyReminder={notifyReminder}
               notifyNearby={notifyNearby}
@@ -462,6 +483,149 @@ function FinishStep({ onGoToApp, displayName }: { onGoToApp: () => void; display
         Turniere entdecken
         <ChevronRight size={18} />
       </button>
+    </div>
+  );
+}
+
+/* ─── Step 3: Recommendations ─── */
+function RecommendationStep({
+  maxDistance,
+  preferHcp,
+  formats,
+  onMaxDistanceChange,
+  onPreferHcpChange,
+  onFormatsChange,
+  onNext,
+  onBack,
+}: {
+  maxDistance: string;
+  preferHcp: boolean;
+  formats: string[];
+  onMaxDistanceChange: (v: string) => void;
+  onPreferHcpChange: (v: boolean) => void;
+  onFormatsChange: (v: string[]) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const formatOptions = Object.entries(FORMAT_LABELS);
+
+  function toggleFormat(f: string) {
+    if (formats.includes(f)) {
+      onFormatsChange(formats.filter((x) => x !== f));
+    } else {
+      onFormatsChange([...formats, f]);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center dark:bg-purple-900/30">
+          <Target size={20} className="text-purple-500" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold">Turniere für dich</h2>
+          <p className="text-sm text-gray-400">Wir empfehlen dir passende Turniere.</p>
+        </div>
+      </div>
+
+      {/* Explanation */}
+      <div className="bg-accent/5 dark:bg-[#1a3329] rounded-xl p-4 mb-6 text-sm text-gray-600 dark:text-[#b8b8b8]">
+        <div className="flex items-start gap-2">
+          <Sparkles size={16} className="text-accent shrink-0 mt-0.5" />
+          <div>
+            <span className="font-medium text-gray-900 dark:text-[#f5f5f5]">So funktioniert &quot;Für dich&quot;:</span>
+            <ul className="mt-1.5 space-y-1 text-xs text-gray-500 dark:text-[#a0a0a0]">
+              <li>Dein <strong>Handicap</strong> filtert Turniere, die du spielen kannst</li>
+              <li>Dein <strong>Heimatclub</strong> bestimmt Turniere in deiner Nähe</li>
+              <li>Deine <strong>Favoriten-Clubs</strong> werden bevorzugt</li>
+              <li>Die Einstellungen unten verfeinern die Empfehlungen</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5 mb-8">
+        {/* Max distance */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Maximale Entfernung
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: '', label: 'Egal' },
+              { value: '25', label: '25 km' },
+              { value: '50', label: '50 km' },
+              { value: '100', label: '100 km' },
+              { value: '200', label: '200 km' },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onMaxDistanceChange(opt.value)}
+                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  maxDistance === opt.value
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Prefer HCP */}
+        <button
+          type="button"
+          onClick={() => onPreferHcpChange(!preferHcp)}
+          className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left transition-colors ${
+            preferHcp
+              ? 'bg-accent/5 border border-accent/20 dark:bg-[#1a3329] dark:border-[#2d4a3a]'
+              : 'bg-white border border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+            preferHcp ? 'bg-accent border-accent' : 'border-gray-300'
+          }`}>
+            {preferHcp && (
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-medium">HCP-relevante Turniere bevorzugen</div>
+            <div className="text-xs text-gray-400">Wichtig wenn du dein Handicap verbessern willst</div>
+          </div>
+        </button>
+
+        {/* Preferred formats */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Bevorzugte Spielformen
+          </label>
+          <p className="text-xs text-gray-400 mb-2">Optional – leer lassen für alle Formate</p>
+          <div className="flex flex-wrap gap-2">
+            {formatOptions.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleFormat(value)}
+                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  formats.includes(value)
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <StepButtons onNext={onNext} onBack={onBack} />
     </div>
   );
 }

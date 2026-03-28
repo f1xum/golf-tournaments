@@ -25,6 +25,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/run_dgv_tournaments.py
 
+      - name: Backfill club IDs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/backfill_club_ids.py
+
       - name: Run deduplication
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

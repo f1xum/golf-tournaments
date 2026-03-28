@@ -37,10 +37,36 @@ export async function generateMetadata({ params }: PageProps) {
   const result = await getTournament(id);
   if (!result) return { title: 'Turnier nicht gefunden' };
 
-  const { tournament, club } = result;
+  const { tournament: t, club } = result;
+  const dateFormatted = new Date(t.date_start + 'T00:00:00').toLocaleDateString('de-DE', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const clubInfo = club ? ` bei ${club.name}` : '';
+  const cityInfo = club?.city ? ` in ${club.city}` : '';
+
+  const title = `${t.name}${clubInfo} | The Pin`;
+  const description = `Golfturnier am ${dateFormatted}${cityInfo}. ${
+    t.entry_fee != null ? `Nenngeld: ${t.entry_fee} €. ` : ''
+  }${t.format ? `Format: ${t.format}. ` : ''}Jetzt auf The Pin ansehen und anmelden.`;
+
   return {
-    title: `${tournament.name}${club ? ` – ${club.name}` : ''}`,
-    description: `Golfturnier am ${tournament.date_start}${club?.city ? ` in ${club.city}` : ''}`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: `https://thepin.app/turniere/${id}`,
+      siteName: 'The Pin',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `https://thepin.app/turniere/${id}`,
+    },
   };
 }
 
@@ -49,9 +75,63 @@ export default async function TurnierDetailPage({ params }: PageProps) {
   const result = await getTournament(id);
   if (!result) notFound();
 
+  const { tournament: t, club } = result;
+
+  // JSON-LD structured data for Google
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: t.name,
+    startDate: t.date_start,
+    endDate: t.date_end || t.date_start,
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    ...(club && {
+      location: {
+        '@type': 'Place',
+        name: club.name,
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: club.address || undefined,
+          addressLocality: club.city || undefined,
+          postalCode: club.postal_code || undefined,
+          addressRegion: club.region || undefined,
+          addressCountry: 'DE',
+        },
+        ...(club.latitude && club.longitude && {
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: club.latitude,
+            longitude: club.longitude,
+          },
+        }),
+      },
+    }),
+    ...(t.entry_fee != null && {
+      offers: {
+        '@type': 'Offer',
+        price: t.entry_fee,
+        priceCurrency: 'EUR',
+        availability: 'https://schema.org/InStock',
+        url: `https://thepin.app/turniere/${id}`,
+      },
+    }),
+    sport: 'Golf',
+    url: `https://thepin.app/turniere/${id}`,
+    organizer: club ? {
+      '@type': 'SportsOrganization',
+      name: club.name,
+      ...(club.website && { url: club.website }),
+    } : undefined,
+  };
+
   return (
     <div className="py-6">
-      <TurnierDetailClient tournament={result.tournament} club={result.club} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <TurnierDetailClient tournament={t} club={club} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Profile, GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import UserHub from './user-hub';
+import RecommendationPrefs from './recommendation-prefs';
 import SavedTournaments from './saved-tournaments';
 import SavedClubs from './saved-clubs';
 
@@ -104,6 +105,8 @@ export default async function ProfilPage() {
         savedClubCount={savedClubIds.length}
         unreadCount={unreadCount ?? 0}
       />
+
+      <RecommendationPrefs profile={profile as Profile | null} />
 
       <SavedClubs clubs={favoriteClubs} />
 
