@@ -13,6 +13,25 @@ export const REGIONS = [
   'München',
 ];
 
+export const BUNDESLAENDER = [
+  'Baden-Württemberg',
+  'Bayern',
+  'Berlin',
+  'Brandenburg',
+  'Bremen',
+  'Hamburg',
+  'Hessen',
+  'Mecklenburg-Vorpommern',
+  'Niedersachsen',
+  'Nordrhein-Westfalen',
+  'Rheinland-Pfalz',
+  'Saarland',
+  'Sachsen',
+  'Sachsen-Anhalt',
+  'Schleswig-Holstein',
+  'Thüringen',
+];
+
 export const FORMAT_OPTIONS: { value: string; label: string }[] = [
   { value: 'stableford', label: 'Stableford' },
   { value: 'strokeplay', label: 'Zählspiel' },

@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { REGIONS, FORMAT_OPTIONS } from '@/lib/constants';
+import { BUNDESLAENDER, FORMAT_OPTIONS } from '@/lib/constants';
 
 export interface Filters {
   region: string;
@@ -21,7 +21,7 @@ export interface Filters {
 }
 
 export const DEFAULT_FILTERS: Filters = {
-  region: '',
+  region: 'Bayern',
   format: '',
   fee: 'all',
   slots: 'all',
@@ -99,18 +99,18 @@ export default function TournamentFilters({ filters, onChange, hasHomeClub, hasF
         </summary>
 
         <div className="px-4 pb-4 space-y-4 border-t border-gray-100">
-          {/* Region */}
+          {/* Bundesland */}
           <div className="pt-3">
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Region
+              Bundesland
             </label>
             <select
               value={filters.region}
               onChange={(e) => update({ region: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50"
             >
-              <option value="">Alle Regionen</option>
-              {REGIONS.map((r) => (
+              <option value="">Alle Bundesländer</option>
+              {BUNDESLAENDER.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>

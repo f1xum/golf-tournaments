@@ -5,8 +5,8 @@ import RouteProgress from '@/components/route-progress';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'The Pin – Golfturniere in Bayern',
-  description: 'Finde und speichere Golfturniere in Bayern',
+  title: 'The Pin – Golfturniere in Deutschland',
+  description: 'Finde und speichere Golfturniere in Deutschland',
   viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
 };
 

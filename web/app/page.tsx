@@ -222,7 +222,7 @@ export default async function HomePage() {
           </div>
           <div>
             <div className="font-semibold text-lg">Golfclubs</div>
-            <div className="text-sm text-gray-500">Alle Golfclubs in Bayern im Überblick</div>
+            <div className="text-sm text-gray-500">Alle Golfclubs in Deutschland im Überblick</div>
           </div>
         </Link>
 

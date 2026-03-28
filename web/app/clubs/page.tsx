@@ -37,7 +37,7 @@ export default async function ClubsPage() {
     <div className="py-6">
       <h1 className="text-2xl font-bold mb-1">Golfclubs</h1>
       <p className="text-gray-500 text-sm mb-6">
-        {clubs.length} Golfclubs in Bayern
+        {clubs.length} Golfclubs in Deutschland
       </p>
       <ClubsClient clubs={clubs} savedClubIds={savedClubIds} />
     </div>

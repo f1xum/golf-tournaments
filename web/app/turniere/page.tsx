@@ -79,7 +79,7 @@ export default async function TurnierePage() {
     <div className="py-6">
       <h1 className="text-2xl font-bold mb-1">Turnierkalender</h1>
       <p className="text-gray-500 text-sm mb-6">
-        Alle Golfturniere in Bayern
+        Alle Golfturniere in Deutschland
       </p>
       <Suspense>
         <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} savedClubIds={savedClubIds} isLoggedIn={isLoggedIn} />
