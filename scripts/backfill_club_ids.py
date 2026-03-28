@@ -10,6 +10,11 @@ This script:
 5. Reports unmatched venues for debugging
 """
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from src.club_matching import build_club_index, match_club_name
 from src.database import Database
 
