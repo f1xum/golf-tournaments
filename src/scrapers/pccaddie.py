@@ -108,7 +108,14 @@ class PCCaddieScraper(BaseScraper):
         print(f"[PC CADDIE] Scraping {len(self.club_ids)} clubs "
               f"({len(_SEED_CLUBS)} seed + {len(self.club_ids) - len(_SEED_CLUBS)} from DB)")
 
-        all_clubs_db = {c["name"]: c for c in self.db.get_all_clubs()}
+        # Build pccaddie_id → club DB id lookup for direct matching
+        all_clubs = self.db.get_all_clubs()
+        all_clubs_db = {c["name"]: c for c in all_clubs}
+        pccaddie_to_club = {}
+        for c in all_clubs:
+            if c.get("pccaddie_id"):
+                pccaddie_to_club[c["pccaddie_id"]] = c
+
         total_found = 0
         total_created = 0
 
@@ -128,11 +135,11 @@ class PCCaddieScraper(BaseScraper):
             print(f"  Found {len(tournament_ids)} tournaments, fetching details...")
             total_found += len(tournament_ids)
 
-            # Match club in DB
-            club = self._find_club(club_name, all_clubs_db)
+            # Match club in DB: first by pccaddie_id, then by name
+            club = pccaddie_to_club.get(pcc_id) or self._find_club(club_name, all_clubs_db)
             club_id = club["id"] if club else None
 
-            # Store pccaddie_id and fetch course info
+            # Store pccaddie_id on the club if not set yet
             if club_id and (not club or club.get("pccaddie_id") != pcc_id):
                 self._update_club_pccaddie_id(club_id, pcc_id)
             if club_id:
