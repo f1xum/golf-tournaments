@@ -101,6 +101,45 @@ class Database:
         )
         return result.data
 
+    def upsert_tournaments_safe(self, tournaments: list[dict]) -> list[dict]:
+        """Upsert tournaments, skipping rows where club_id is NULL but a
+        matched version (with club_id set) already exists in the DB.
+        This prevents re-creating NULL club_id duplicates after backfill."""
+        # Split into matched (have club_id) and unmatched (no club_id)
+        matched = [t for t in tournaments if t.get("club_id")]
+        unmatched = [t for t in tournaments if not t.get("club_id")]
+
+        results = []
+        # Matched rows can be upserted directly
+        if matched:
+            results.extend(self.upsert_tournaments(matched))
+
+        # For unmatched rows, check if a version with club_id already exists
+        for t in unmatched:
+            existing = (
+                self.client.table("tournaments")
+                .select("id,club_id")
+                .eq("name", t["name"])
+                .eq("date_start", t["date_start"])
+                .eq("source", t["source"])
+                .execute()
+            )
+            if existing.data:
+                # Row exists — update it but preserve club_id
+                row = existing.data[0]
+                update_data = {k: v for k, v in t.items()
+                               if k not in ("name", "date_start", "source", "club_id")}
+                if update_data:
+                    self.client.table("tournaments").update(
+                        update_data
+                    ).eq("id", row["id"]).execute()
+                results.append(row)
+            else:
+                # Truly new tournament — insert with NULL club_id
+                results.extend(self.upsert_tournaments([t]))
+
+        return results
+
     def get_tournaments(
         self,
         source: str | None = None,

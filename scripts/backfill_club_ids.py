@@ -3,8 +3,11 @@
 This script:
 1. Loads all clubs from the database
 2. Finds tournaments with NULL club_id
-3. Attempts to match them to clubs using normalized name matching
-4. Updates matched tournaments with the correct club_id
+3. Matches them to clubs using normalized name matching
+4. For matched tournaments: if a duplicate row already exists with the same
+   (name, date_start, source) and a real club_id, deletes the NULL row.
+   Otherwise updates the NULL row with the matched club_id.
+5. Reports unmatched venues for debugging
 """
 
 from src.club_matching import build_club_index, match_club_name
@@ -22,11 +25,54 @@ def main():
     club_index = build_club_index(clubs)
     print(f"Built index with {len(club_index)} normalized entries")
 
-    # Find tournaments with NULL club_id
-    # Supabase paginates at 1000 by default, so we page through
-    all_unmatched = []
+    # Step 1: Clean up NULL duplicates — rows where the same tournament
+    # exists both with NULL club_id and with a real club_id
+    print("\n--- Step 1: Cleaning up NULL club_id duplicates ---")
+    all_null = []
     offset = 0
     page_size = 1000
+    while True:
+        result = (
+            db.client.table("tournaments")
+            .select("id,name,date_start,source")
+            .is_("club_id", "null")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        batch = result.data
+        if not batch:
+            break
+        all_null.extend(batch)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    print(f"Found {len(all_null)} tournaments with NULL club_id")
+
+    deleted = 0
+    for t in all_null:
+        # Check if a version with club_id exists
+        existing = (
+            db.client.table("tournaments")
+            .select("id")
+            .eq("name", t["name"])
+            .eq("date_start", t["date_start"])
+            .eq("source", t["source"])
+            .not_.is_("club_id", "null")
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            # A matched version exists — delete the NULL duplicate
+            db.client.table("tournaments").delete().eq("id", t["id"]).execute()
+            deleted += 1
+
+    print(f"Deleted {deleted} NULL duplicates (matched version already exists)")
+
+    # Step 2: Match remaining NULL club_id tournaments
+    print("\n--- Step 2: Matching remaining tournaments ---")
+    remaining = []
+    offset = 0
     while True:
         result = (
             db.client.table("tournaments")
@@ -38,25 +84,22 @@ def main():
         batch = result.data
         if not batch:
             break
-        all_unmatched.extend(batch)
+        remaining.extend(batch)
         if len(batch) < page_size:
             break
         offset += page_size
 
-    print(f"\nFound {len(all_unmatched)} tournaments with NULL club_id")
+    print(f"Found {len(remaining)} tournaments still with NULL club_id")
 
     matched = 0
     failed_venues: dict[str, int] = {}
 
-    for t in all_unmatched:
-        # Try to extract venue name from different fields
+    for t in remaining:
         venue = None
         raw = t.get("raw_data") or {}
 
-        # BGV: venue is in description field
         if t.get("description"):
             venue = t["description"]
-        # DGV: venue in raw_data.venue
         elif raw.get("venue"):
             venue = raw["venue"]
 
@@ -65,7 +108,6 @@ def main():
 
         club = match_club_name(venue, club_index, clubs_by_name)
         if not club:
-            # Fallback: DB ilike search
             club = db.find_club_by_name(venue)
 
         if club:
@@ -77,8 +119,9 @@ def main():
             failed_venues[venue] = failed_venues.get(venue, 0) + 1
 
     print(f"\n=== Results ===")
-    print(f"Matched: {matched} / {len(all_unmatched)} tournaments")
-    print(f"Still unmatched: {len(all_unmatched) - matched}")
+    print(f"Duplicates cleaned: {deleted}")
+    print(f"Newly matched: {matched} / {len(remaining)}")
+    print(f"Still unmatched: {len(remaining) - matched}")
 
     if failed_venues:
         print(f"\nTop unmatched venues:")

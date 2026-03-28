@@ -42,7 +42,7 @@ class BGVTournamentsScraper(BaseScraper):
             rows.append(row)
 
         if rows:
-            self.db.upsert_tournaments(rows)
+            self.db.upsert_tournaments_safe(rows)
 
         if hasattr(self, "_ctx"):
             self._ctx.items_found = len(tournaments)
