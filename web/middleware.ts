@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Only refresh auth session on routes that need it
-const AUTH_ROUTES = ['/profil', '/benachrichtigungen', '/einstellungen'];
+const AUTH_ROUTES = ['/profil', '/benachrichtigungen', '/einstellungen', '/turniere'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

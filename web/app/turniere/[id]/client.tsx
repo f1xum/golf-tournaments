@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
@@ -24,11 +25,18 @@ const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
 interface Props {
   tournament: Tournament;
   club: GolfClub | null;
+  isLoggedIn: boolean;
 }
 
-export default function TurnierDetailClient({ tournament: t, club }: Props) {
+export default function TurnierDetailClient({ tournament: t, club, isLoggedIn }: Props) {
   const raw = t.raw_data || {};
   const formatLabel = formatToLabel(t.format);
+  const [showLoginToast, setShowLoginToast] = useState(false);
+  const loginToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (loginToastTimer.current) clearTimeout(loginToastTimer.current); };
+  }, []);
   const holes = extractHoles(t.raw_data, t.description);
   const meldeschluss = formatMeldeschluss(t.raw_data);
 
@@ -163,22 +171,52 @@ export default function TurnierDetailClient({ tournament: t, club }: Props) {
         </div>
       )}
 
-      {/* CTA buttons */}
+      {/* CTA buttons — visible to all, toast for non-logged-in */}
       {!isPast && (
         <div className="flex gap-3 mb-6">
           {registrationUrl && (
-            <a
-              href={registrationUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
-            >
-              <ExternalLink size={16} />
-              Jetzt anmelden
-            </a>
+            isLoggedIn ? (
+              <a
+                href={registrationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+              >
+                <ExternalLink size={16} />
+                Jetzt anmelden
+              </a>
+            ) : (
+              <button
+                onClick={() => {
+                  setShowLoginToast(true);
+                  if (loginToastTimer.current) clearTimeout(loginToastTimer.current);
+                  loginToastTimer.current = setTimeout(() => setShowLoginToast(false), 4000);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+              >
+                <ExternalLink size={16} />
+                Jetzt anmelden
+              </button>
+            )
           )}
           <div className={registrationUrl ? 'flex-1' : 'w-full'}>
             <AddToCalendarButton tournamentId={t.id} size="lg" />
+          </div>
+        </div>
+      )}
+
+      {/* Login toast */}
+      {showLoginToast && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[10001] animate-in fade-in slide-in-from-bottom-2">
+          <div className="bg-gray-900 text-white text-sm rounded-lg px-4 py-2.5 shadow-lg flex items-center gap-3 whitespace-nowrap">
+            <span>Melde dich an, um dich für Turniere anzumelden</span>
+            <Link
+              href="/login"
+              className="text-accent-light font-medium hover:underline"
+              onClick={() => setShowLoginToast(false)}
+            >
+              Anmelden →
+            </Link>
           </div>
         </div>
       )}

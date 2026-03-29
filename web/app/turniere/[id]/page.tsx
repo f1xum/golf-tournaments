@@ -77,6 +77,10 @@ export default async function TurnierDetailPage({ params }: PageProps) {
 
   const { tournament: t, club } = result;
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
+
   // JSON-LD structured data for Google
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -131,7 +135,7 @@ export default async function TurnierDetailPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <TurnierDetailClient tournament={t} club={club} />
+      <TurnierDetailClient tournament={t} club={club} isLoggedIn={isLoggedIn} />
     </div>
   );
 }
