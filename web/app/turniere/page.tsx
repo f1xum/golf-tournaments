@@ -21,32 +21,40 @@ async function fetchAllPages(
   ascending: boolean,
 ) {
   const pageSize = 1000;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const all: any[] = [];
-  let offset = 0;
 
-  while (true) {
-    let query = supabase
-      .from('tournaments')
-      .select(columns);
+  // First, get total count so we can fetch pages in parallel
+  let countQuery = supabase
+    .from('tournaments')
+    .select('id', { count: 'exact', head: true });
+  if (dateFilter === 'gte') {
+    countQuery = countQuery.gte('date_start', today);
+  } else {
+    countQuery = countQuery.lt('date_start', today);
+  }
+  const { count } = await countQuery;
+  if (!count || count === 0) return [];
 
+  // Fetch all pages in parallel
+  const totalPages = Math.ceil(count / pageSize);
+  const fetches = Array.from({ length: totalPages }, (_, i) => {
+    const offset = i * pageSize;
+    let query = supabase.from('tournaments').select(columns);
     if (dateFilter === 'gte') {
       query = query.gte('date_start', today);
     } else {
       query = query.lt('date_start', today);
     }
-
-    const { data } = await query
+    return query
       .order('date_start', { ascending })
       .range(offset, offset + pageSize - 1);
+  });
 
-    if (!data || data.length === 0) break;
-    all.push(...data);
-
-    if (data.length < pageSize) break;
-    offset += pageSize;
+  const results = await Promise.all(fetches);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const all: any[] = [];
+  for (const { data } of results) {
+    if (data) all.push(...data);
   }
-
   return all;
 }
 
@@ -56,9 +64,9 @@ async function getData() {
 
   const tournamentColumns = 'id,name,club_id,date_start,date_end,format,rounds,max_handicap,min_handicap,entry_fee,age_class,gender,description,raw_data,source';
 
-  const [upcoming, past, clubsRes, userRes] = await Promise.all([
+  // Only fetch upcoming server-side; past tournaments are lazy-loaded client-side
+  const [upcoming, clubsRes, userRes] = await Promise.all([
     fetchAllPages(supabase, tournamentColumns, 'gte', today, true),
-    fetchAllPages(supabase, tournamentColumns, 'lt', today, false),
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude'),
@@ -97,7 +105,6 @@ async function getData() {
 
   return {
     upcoming: upcoming as Tournament[],
-    past: past as Tournament[],
     clubs,
     homeClubCoords,
     savedClubIds,
@@ -106,7 +113,7 @@ async function getData() {
 }
 
 export default async function TurnierePage() {
-  const { upcoming, past, clubs, homeClubCoords, savedClubIds, isLoggedIn } = await getData();
+  const { upcoming, clubs, homeClubCoords, savedClubIds, isLoggedIn } = await getData();
 
   return (
     <div className="py-6">
@@ -115,7 +122,7 @@ export default async function TurnierePage() {
         Alle Golfturniere in Deutschland
       </p>
       <Suspense>
-        <TurniereClient upcoming={upcoming} past={past} clubs={clubs} homeClubCoords={homeClubCoords} savedClubIds={savedClubIds} isLoggedIn={isLoggedIn} />
+        <TurniereClient upcoming={upcoming} clubs={clubs} homeClubCoords={homeClubCoords} savedClubIds={savedClubIds} isLoggedIn={isLoggedIn} />
       </Suspense>
     </div>
   );

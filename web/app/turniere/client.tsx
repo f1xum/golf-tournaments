@@ -13,7 +13,6 @@ import { ChevronDown, Clock, Lock } from 'lucide-react';
 
 interface Props {
   upcoming: Tournament[];
-  past: Tournament[];
   clubs: Record<string, GolfClub>;
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
@@ -84,18 +83,34 @@ function applyFilters(
   });
 }
 
-export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
+export default function TurniereClient({ upcoming, clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
   const [view, setView] = useState<'calendar' | 'list'>(isLoggedIn ? 'calendar' : 'list');
-  const [showPast, setShowPast] = useState(true);
+  const [showPast, setShowPast] = useState(false);
+  const [past, setPast] = useState<Tournament[]>([]);
+  const [pastLoading, setPastLoading] = useState(false);
+  const pastLoaded = useRef(false);
   const [showLoginToast, setShowLoginToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
   }, []);
+
+  // Lazy-load past tournaments when user opens the section
+  useEffect(() => {
+    if (showPast && !pastLoaded.current) {
+      pastLoaded.current = true;
+      setPastLoading(true);
+      fetch('/api/tournaments/past')
+        .then((r) => r.json())
+        .then((data) => setPast(data as Tournament[]))
+        .finally(() => setPastLoading(false));
+    }
+  }, [showPast]);
+
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     club: clubParam,
@@ -233,34 +248,44 @@ export default function TurniereClient({ upcoming, past, clubs, homeClubCoords, 
       )}
 
       {/* Past tournaments toggle */}
-      {filteredPast.length > 0 && (
-        <div className="mt-6">
-          <button
-            onClick={() => setShowPast(!showPast)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Clock size={16} className="text-gray-400" />
-              <span className="text-sm font-medium text-gray-600">
-                Vergangene Turniere
-              </span>
+      <div className="mt-6">
+        <button
+          onClick={() => setShowPast(!showPast)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-gray-400" />
+            <span className="text-sm font-medium text-gray-600">
+              Vergangene Turniere
+            </span>
+            {filteredPast.length > 0 && (
               <span className="text-xs text-gray-400">
                 {filteredPast.length}
               </span>
-            </div>
-            <ChevronDown
-              size={16}
-              className={`text-gray-400 transition-transform ${showPast ? 'rotate-180' : ''}`}
-            />
-          </button>
+            )}
+          </div>
+          <ChevronDown
+            size={16}
+            className={`text-gray-400 transition-transform ${showPast ? 'rotate-180' : ''}`}
+          />
+        </button>
 
-          {showPast && (
-            <div className="mt-3">
+        {showPast && (
+          <div className="mt-3">
+            {pastLoading ? (
+              <div className="text-center py-8 text-sm text-gray-400">
+                Turniere werden geladen...
+              </div>
+            ) : filteredPast.length > 0 ? (
               <TournamentList tournaments={filteredPast} clubs={clubs} />
-            </div>
-          )}
-        </div>
-      )}
+            ) : (
+              <div className="text-center py-8 text-sm text-gray-400">
+                Keine vergangenen Turniere gefunden
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </>
   );
 }
