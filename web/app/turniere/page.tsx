@@ -21,7 +21,8 @@ async function fetchAllPages(
   ascending: boolean,
 ) {
   const pageSize = 1000;
-  const all: Record<string, unknown>[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const all: any[] = [];
   let offset = 0;
 
   while (true) {
@@ -39,10 +40,10 @@ async function fetchAllPages(
       .order('date_start', { ascending })
       .range(offset, offset + pageSize - 1);
 
-    const batch = data ?? [];
-    all.push(...batch);
+    if (!data || data.length === 0) break;
+    all.push(...data);
 
-    if (batch.length < pageSize) break;
+    if (data.length < pageSize) break;
     offset += pageSize;
   }
 
