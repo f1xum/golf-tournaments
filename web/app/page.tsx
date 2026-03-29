@@ -63,9 +63,8 @@ async function getData() {
         query = query.or(`min_handicap.is.null,min_handicap.lte.${p.handicap}`);
       }
 
-      if (!hasHomeCoords && savedClubIds.size === 0) {
-        query = query.limit(4);
-      }
+      // Limit candidates — we only need the top 4, so 500 nearest-date is plenty
+      query = query.limit(500);
 
       const { data: candidates } = await query;
       const tournamentList = (candidates ?? []) as Tournament[];
