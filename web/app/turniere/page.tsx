@@ -13,26 +13,51 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://thepin.app/turniere' },
 };
 
+async function fetchAllPages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  columns: string,
+  dateFilter: 'gte' | 'lt',
+  today: string,
+  ascending: boolean,
+) {
+  const pageSize = 1000;
+  const all: Record<string, unknown>[] = [];
+  let offset = 0;
+
+  while (true) {
+    let query = supabase
+      .from('tournaments')
+      .select(columns);
+
+    if (dateFilter === 'gte') {
+      query = query.gte('date_start', today);
+    } else {
+      query = query.lt('date_start', today);
+    }
+
+    const { data } = await query
+      .order('date_start', { ascending })
+      .range(offset, offset + pageSize - 1);
+
+    const batch = data ?? [];
+    all.push(...batch);
+
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return all;
+}
+
 async function getData() {
   const supabase = await createClient();
   const today = todayISO();
 
-  // Select only the columns needed for filtering + display (skip source_url, registration_url etc.)
   const tournamentColumns = 'id,name,club_id,date_start,date_end,format,rounds,max_handicap,min_handicap,entry_fee,age_class,gender,description,raw_data,source';
 
-  const [upcomingRes, pastRes, clubsRes, userRes] = await Promise.all([
-    supabase
-      .from('tournaments')
-      .select(tournamentColumns)
-      .gte('date_start', today)
-      .order('date_start', { ascending: true })
-      .limit(5000),
-    supabase
-      .from('tournaments')
-      .select(tournamentColumns)
-      .lt('date_start', today)
-      .order('date_start', { ascending: false })
-      .limit(5000),
+  const [upcoming, past, clubsRes, userRes] = await Promise.all([
+    fetchAllPages(supabase, tournamentColumns, 'gte', today, true),
+    fetchAllPages(supabase, tournamentColumns, 'lt', today, false),
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude'),
@@ -70,8 +95,8 @@ async function getData() {
   }
 
   return {
-    upcoming: (upcomingRes.data ?? []) as Tournament[],
-    past: (pastRes.data ?? []) as Tournament[],
+    upcoming: upcoming as Tournament[],
+    past: past as Tournament[],
     clubs,
     homeClubCoords,
     savedClubIds,
