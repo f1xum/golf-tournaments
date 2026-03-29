@@ -81,20 +81,24 @@ PCCADDIE_BASE = "https://www.pccaddie.net/clubs"
 class PCCaddieScraper(BaseScraper):
     source_name = "pccaddie"
 
-    def __init__(self, club_ids: dict[str, str] | None = None, **kwargs):
+    def __init__(self, club_ids: dict[str, str] | None = None, regions: list[str] | None = None, **kwargs):
         super().__init__(**kwargs)
         self._explicit_ids = club_ids
+        self._regions = regions
 
     def _build_club_ids(self) -> dict[str, str]:
-        """Merge seed list with pccaddie_ids stored in the database."""
+        """Merge seed list with pccaddie_ids stored in the database.
+        If regions are specified, only include clubs from those regions."""
         if self._explicit_ids is not None:
             return self._explicit_ids
 
-        # Start with seed list
-        merged: dict[str, str] = dict(_SEED_CLUBS)
+        # Start with seed list (only if no region filter, since seeds are all Bayern)
+        merged: dict[str, str] = {}
+        if not self._regions or "Bayern" in self._regions:
+            merged = dict(_SEED_CLUBS)
 
         # Add clubs from DB that have a pccaddie_id
-        db_clubs = self.db.get_clubs_with_pccaddie_id()
+        db_clubs = self.db.get_clubs_with_pccaddie_id(regions=self._regions)
         for club in db_clubs:
             name = club["name"]
             pcc_id = club["pccaddie_id"]

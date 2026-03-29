@@ -63,15 +63,17 @@ class Database:
         )
         return result.data
 
-    def get_clubs_with_pccaddie_id(self) -> list[dict]:
-        """Return all clubs that have a PC CADDIE ID stored."""
-        result = (
+    def get_clubs_with_pccaddie_id(self, regions: list[str] | None = None) -> list[dict]:
+        """Return all clubs that have a PC CADDIE ID stored.
+        Optionally filter by region(s)."""
+        query = (
             self.client.table("golf_clubs")
-            .select("id,name,pccaddie_id")
+            .select("id,name,pccaddie_id,region")
             .not_.is_("pccaddie_id", "null")
-            .execute()
         )
-        return result.data
+        if regions:
+            query = query.in_("region", regions)
+        return query.execute().data
 
     def find_club_by_name(self, name: str) -> dict | None:
         """Fuzzy match club by name (case-insensitive contains)."""

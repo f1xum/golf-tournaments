@@ -1,4 +1,4 @@
-name: "PC CADDIE: Bayern"
+name: "PC CADDIE: Nord"
 
 on:
   schedule:
@@ -14,11 +14,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install .
-      - name: Scrape Bayern
+      - name: Scrape Nord
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: python scripts/run_pccaddie.py Bayern
+        run: python scripts/run_pccaddie.py Niedersachsen Schleswig-Holstein Hamburg Bremen Mecklenburg-Vorpommern
       - name: Dedup
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
