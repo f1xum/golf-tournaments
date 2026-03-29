@@ -113,14 +113,42 @@ def main():
                 db.client.table('golf_clubs').update(updates).eq('id', keeper['id']).execute()
                 print(f"  → Merged {len(updates)-1} fields from {dup['name']}")
 
-            # Migrate tournaments
-            t_res = db.client.table('tournaments').update(
-                {'club_id': keeper['id']}
+            # Migrate tournaments — delete duplicates that would conflict, then migrate the rest
+            dup_tournaments = db.client.table('tournaments').select(
+                'id,name,date_start,source'
             ).eq('club_id', dup['id']).execute()
-            migrated = len(t_res.data) if t_res.data else 0
-            if migrated:
-                print(f"  → Migrated {migrated} tournaments from {dup['id']}")
-                total_tournaments_migrated += migrated
+            dup_t_list = dup_tournaments.data or []
+
+            if dup_t_list:
+                # Find which tournaments already exist under the keeper
+                keeper_tournaments = db.client.table('tournaments').select(
+                    'name,date_start,source'
+                ).eq('club_id', keeper['id']).execute()
+                keeper_keys = {
+                    (t['name'], t['date_start'], t['source'])
+                    for t in (keeper_tournaments.data or [])
+                }
+
+                # Delete dup tournaments that would conflict
+                conflicts = [
+                    t for t in dup_t_list
+                    if (t['name'], t['date_start'], t['source']) in keeper_keys
+                ]
+                if conflicts:
+                    conflict_ids = [t['id'] for t in conflicts]
+                    db.client.table('tournaments').delete().in_('id', conflict_ids).execute()
+                    print(f"  → Removed {len(conflicts)} conflicting tournaments from {dup['name']}")
+
+                # Migrate remaining
+                remaining = len(dup_t_list) - len(conflicts)
+                if remaining > 0:
+                    t_res = db.client.table('tournaments').update(
+                        {'club_id': keeper['id']}
+                    ).eq('club_id', dup['id']).execute()
+                    migrated = len(t_res.data) if t_res.data else 0
+                    if migrated:
+                        print(f"  → Migrated {migrated} tournaments from {dup['id']}")
+                        total_tournaments_migrated += migrated
 
             # Migrate saved_clubs (ignore conflicts — user might already have keeper saved)
             try:
