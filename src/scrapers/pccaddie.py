@@ -283,6 +283,42 @@ class PCCaddieScraper(BaseScraper):
             if num_match:
                 free_slots = int(num_match.group(1))
 
+        # Max / min handicap from Turnierart or full text
+        max_handicap = None
+        min_handicap = None
+        hcp_match_range = re.search(
+            r"Handicap\s*(?:von\s*)?(-?\d+[.,]?\d*)\s*(?:bis|-|–)\s*(-?\d+[.,]?\d*)",
+            text, re.IGNORECASE,
+        )
+        if hcp_match_range:
+            min_handicap = float(hcp_match_range.group(1).replace(",", "."))
+            max_handicap = float(hcp_match_range.group(2).replace(",", "."))
+        else:
+            hcp_match_single = re.search(
+                r"(?:bis|max\.?)\s*(?:Handicap|HCP|Hcp)\s*(-?\d+[.,]?\d*)",
+                text, re.IGNORECASE,
+            )
+            if hcp_match_single:
+                max_handicap = float(hcp_match_single.group(1).replace(",", "."))
+
+        # Gender from full page text
+        gender = None
+        gender_text = (turnierart + " " + name).lower()
+        if re.search(r"\bherren\b", gender_text) and re.search(r"\bdamen\b", gender_text):
+            gender = "Herren und Damen"
+        elif re.search(r"\bherren\b", gender_text):
+            gender = "Herren"
+        elif re.search(r"\bdamen\b", gender_text):
+            gender = "Damen"
+
+        # Age class
+        age_class = None
+        age_text = (turnierart + " " + name).lower()
+        if re.search(r"\bjugend\b|\bjunior", age_text):
+            age_class = "Jugend"
+        elif re.search(r"\bsenior|\bü50\b|\bü60\b|\bü65\b|\bü70\b", age_text):
+            age_class = "Senioren"
+
         # Handicap relevant - make sure "nicht Handicap-relevant" is excluded
         hcp_relevant = bool(
             re.search(r"(?<!nicht\s)Handicap-relevant", text)
@@ -323,9 +359,13 @@ class PCCaddieScraper(BaseScraper):
             date_start=date_start,
             format=format_str,
             rounds=1,
+            max_handicap=max_handicap,
+            min_handicap=min_handicap,
             entry_fee=entry_fee,
+            gender=gender,
+            age_class=age_class,
             description=f"{holes} holes" if holes else None,
-            source=TournamentSource.CLUB_WEBSITE,
+            source=TournamentSource.PCCADDIE,
             source_url=source_url,
             raw_data={
                 "pccaddie_id": tournament_id,

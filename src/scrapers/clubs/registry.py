@@ -6,23 +6,11 @@ Each entry maps a club name to a config dict with:
 
 # Pilot clubs near Munich with verified tournament page URLs
 CLUB_CONFIGS: dict[str, dict] = {
-    "Golfclub München Eichenried": {
-        "tournament_url": "https://www.pccaddie.net/clubs/0498820/app.php?cat=ts_calendar",
-    },
+    # Clubs covered by PC CADDIE scraper (removed to avoid duplicates):
+    # - Golfclub München Eichenried, Golf-Club Feldafing, Golfclub Starnberg,
+    #   Golfclub München-Riem, Golf Valley (München Valley)
     "OPEN.9 Golf Eichenried": {
         "tournament_url": "https://www.open9.de/buchungen/turnier-buchen-1.html",
-    },
-    "Golf-Club Feldafing e.V.": {
-        "tournament_url": "https://www.golfclub-feldafing.de/turniere/turnierkalender/",
-    },
-    "Golfclub Starnberg e.V.": {
-        "tournament_url": "https://www.gcstarnberg.de/turniere/",
-    },
-    "Golfclub München-Riem e.V.": {
-        "tournament_url": "https://www.gcriem.de/turniere/turnierkalender.html",
-    },
-    "Golfclub München Valley e.V.": {
-        "tournament_url": "https://www.golfvalley.de/sport/turniere.html",
     },
     "Golfclub Olching e.V.": {
         "tournament_url": "https://www.golfclubolching.de/sport/turniere.html",

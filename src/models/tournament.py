@@ -8,6 +8,8 @@ from pydantic import BaseModel, field_validator, model_validator
 class TournamentSource(StrEnum):
     BGV = "bgv"
     DGV = "dgv"
+    PCCADDIE = "pccaddie"
+    NEXXCHANGE = "nexxchange"
     CLUB_WEBSITE = "club_website"
 
 

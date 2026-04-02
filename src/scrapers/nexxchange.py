@@ -118,6 +118,18 @@ class NexxchangeScraper(BaseScraper):
         max_hcp = self._parse_hcp(t.get("hcpFrom"))
         min_hcp = self._parse_hcp(t.get("hcpUntil"))
 
+        # Entry fee
+        entry_fee = None
+        fee_val = entry.get("fee") or t.get("fee") or t.get("entryFee")
+        if fee_val is not None:
+            try:
+                entry_fee = float(str(fee_val).replace(",", ".").replace("€", "").strip())
+            except (ValueError, TypeError):
+                pass
+
+        # HCP relevant — derive from tournament properties
+        hcp_relevant = bool(t.get("hcpRelevant") or t.get("handicapRelevant"))
+
         # Free slots
         player_count = t.get("playerCount")
         active = t.get("active")
@@ -138,9 +150,10 @@ class NexxchangeScraper(BaseScraper):
             rounds=1,
             max_handicap=max_hcp,
             min_handicap=min_hcp,
+            entry_fee=entry_fee,
             description=t.get("description"),
             registration_url=reg_link or None,
-            source=TournamentSource.CLUB_WEBSITE,
+            source=TournamentSource.NEXXCHANGE,
             source_url=show_link or None,
             raw_data={
                 "nexxchange_id": t.get("id"),
@@ -153,6 +166,7 @@ class NexxchangeScraper(BaseScraper):
                 "active_participants": active,
                 "free_slots": remaining,
                 "guests_allowed": guests_allowed,
+                "hcp_relevant": hcp_relevant,
                 "registration_deadline": t.get("registrationDeadline"),
                 "registration_start": t.get("registrationStart"),
                 "round_types": round_types,

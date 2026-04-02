@@ -53,12 +53,14 @@ export default function TurnierDetailClient({ tournament: t, club, isLoggedIn }:
   const slotsLow = typeof freeSlots === 'number' && freeSlots > 0 && freeSlots <= 10;
 
   const sourceLabel =
-    t.source === 'club_website' ? 'PC CADDIE' :
+    t.source === 'pccaddie' ? 'PC CADDIE' :
+    t.source === 'nexxchange' ? 'Nexxchange' :
+    t.source === 'club_website' ? 'Club Website' :
     t.source === 'bgv' ? 'BGV' :
     t.source === 'dgv' ? 'DGV' : 'Quelle';
 
-  // Registration URL: prefer explicit, fallback to source_url for club_website source
-  const registrationUrl = t.registration_url || (t.source === 'club_website' ? t.source_url : null);
+  // Registration URL: prefer explicit, fallback to source_url for pccaddie/club_website source
+  const registrationUrl = t.registration_url || (['pccaddie', 'club_website'].includes(t.source) ? t.source_url : null);
 
   return (
     <>

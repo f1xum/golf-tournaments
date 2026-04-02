@@ -5,7 +5,7 @@ import { RawData } from './types';
  * e.g. "Einzel Zählspiel nach Stableford über 18 Löcher" → 18
  * Also checks description field for "9 holes" / "18 holes"
  */
-export function extractHoles(rawData: RawData | null, description: string | null): number | null {
+export function extractHoles(rawData: RawData | null, description: string | null): number {
   const turnierart = rawData?.turnierart;
   if (typeof turnierart === 'string') {
     const match = turnierart.match(/(\d+)\s*Lö/);
@@ -15,7 +15,7 @@ export function extractHoles(rawData: RawData | null, description: string | null
     const match = description.match(/(\d+)\s*hole/i);
     if (match) return parseInt(match[1]);
   }
-  return null;
+  return 18; // default: most tournaments are 18 holes
 }
 
 /**
