@@ -61,6 +61,7 @@ export interface Profile {
   home_club_id: string | null;
   handicap: number | null;
   avatar_url: string | null;
+  role: string;
   created_at: string;
   updated_at: string;
   notify_tournament_reminder: boolean;
