@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data';
 const PAGE_SIZE = 1000;
 
-/* Keep only the raw_data fields used for filtering + display */
+/* Keep only the raw_data fields used for filtering + display, drop everything else */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function slim(t: any) {
   const raw = t.raw_data || {};
@@ -40,7 +40,7 @@ export async function GET() {
   const { count } = await supabase
     .from('tournaments')
     .select('id', { count: 'exact', head: true })
-    .lt('date_start', today);
+    .gte('date_start', today);
 
   if (!count || count === 0) {
     return NextResponse.json([]);
@@ -52,8 +52,8 @@ export async function GET() {
     return supabase
       .from('tournaments')
       .select(COLUMNS)
-      .lt('date_start', today)
-      .order('date_start', { ascending: false })
+      .gte('date_start', today)
+      .order('date_start', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
   });
 

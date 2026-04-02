@@ -9,10 +9,9 @@ import { extractHoles } from '@/lib/tournament-utils';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
-import { ChevronDown, Clock, Lock } from 'lucide-react';
+import { ChevronDown, Clock, Lock, Search, X } from 'lucide-react';
 
 interface Props {
-  upcoming: Tournament[];
   clubs: Record<string, GolfClub>;
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
@@ -25,9 +24,17 @@ function applyFilters(
   clubs: Record<string, GolfClub>,
   refPoint: [number, number] | null,
   savedClubIds: string[],
+  search: string,
 ) {
+  const q = search.toLowerCase().trim();
   return tournaments.filter((t) => {
     const raw = t.raw_data || {};
+
+    if (q) {
+      const club = clubs[t.club_id || ''];
+      const haystack = `${t.name} ${club?.name || ''} ${club?.city || ''}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
 
     if (filters.favoriteClubs === 'yes' && !savedClubIds.includes(t.club_id || '')) return false;
     if (filters.club && t.club_id !== filters.club) return false;
@@ -83,20 +90,52 @@ function applyFilters(
   });
 }
 
-export default function TurniereClient({ upcoming, clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex justify-between mb-2">
+            <div className="h-4 w-24 bg-gray-100 rounded" />
+            <div className="h-5 w-16 bg-gray-100 rounded" />
+          </div>
+          <div className="h-5 w-3/4 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-1/2 bg-gray-100 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
   const [view, setView] = useState<'calendar' | 'list'>(isLoggedIn ? 'calendar' : 'list');
+  const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Tournament data — fetched client-side for fast page shell
+  const [upcoming, setUpcoming] = useState<Tournament[]>([]);
+  const [upcomingLoading, setUpcomingLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
   const [past, setPast] = useState<Tournament[]>([]);
   const [pastLoading, setPastLoading] = useState(false);
   const pastLoaded = useRef(false);
+
   const [showLoginToast, setShowLoginToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
+  }, []);
+
+  // Fetch upcoming tournaments on mount
+  useEffect(() => {
+    fetch('/api/tournaments/upcoming')
+      .then((r) => r.json())
+      .then((data) => setUpcoming(data as Tournament[]))
+      .finally(() => setUpcomingLoading(false));
   }, []);
 
   // Lazy-load past tournaments when user opens the section
@@ -139,13 +178,13 @@ export default function TurniereClient({ upcoming, clubs, homeClubCoords, savedC
   const refPoint = filters.distanceFrom === 'homeclub' ? homeClubCoords : userPos;
 
   const filteredUpcoming = useMemo(
-    () => applyFilters(upcoming, filters, clubs, refPoint, savedClubIds),
-    [upcoming, clubs, filters, refPoint, savedClubIds]
+    () => applyFilters(upcoming, filters, clubs, refPoint, savedClubIds, search),
+    [upcoming, clubs, filters, refPoint, savedClubIds, search]
   );
 
   const filteredPast = useMemo(
-    () => applyFilters(past, filters, clubs, refPoint, savedClubIds),
-    [past, clubs, filters, refPoint, savedClubIds]
+    () => applyFilters(past, filters, clubs, refPoint, savedClubIds, search),
+    [past, clubs, filters, refPoint, savedClubIds, search]
   );
 
   const activeClub = filters.club ? clubs[filters.club] : null;
@@ -166,6 +205,31 @@ export default function TurniereClient({ upcoming, clubs, homeClubCoords, savedC
           </button>
         </div>
       )}
+
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          ref={searchRef}
+          type="text"
+          value={search}
+          placeholder="Turnier oder Club suchen..."
+          onFocus={() => setView('list')}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            if (view !== 'list') setView('list');
+          }}
+          className="w-full pl-9 pr-9 py-2.5 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+        />
+        {search && (
+          <button
+            onClick={() => { setSearch(''); searchRef.current?.focus(); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
 
       {/* View toggle */}
       <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
@@ -236,12 +300,16 @@ export default function TurniereClient({ upcoming, clubs, homeClubCoords, savedC
         <span className="text-sm font-medium text-gray-700">
           Kommende Turniere
         </span>
-        <span className="text-xs text-gray-400">
-          {filteredUpcoming.length} Turnier{filteredUpcoming.length !== 1 ? 'e' : ''}
-        </span>
+        {!upcomingLoading && (
+          <span className="text-xs text-gray-400">
+            {filteredUpcoming.length} Turnier{filteredUpcoming.length !== 1 ? 'e' : ''}
+          </span>
+        )}
       </div>
 
-      {view === 'calendar' ? (
+      {upcomingLoading ? (
+        <LoadingSkeleton />
+      ) : view === 'calendar' ? (
         <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
         <TournamentList tournaments={filteredUpcoming} clubs={clubs} />

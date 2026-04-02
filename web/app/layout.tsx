@@ -3,6 +3,7 @@ import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
 import RouteProgress from '@/components/route-progress';
 import './globals.css';
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: {
@@ -59,6 +60,7 @@ export default function RootLayout({
         <Nav />
         <main className="max-w-4xl mx-auto px-4 pb-24 sm:pb-20">{children}</main>
         <BottomNav />
+        <Analytics />
       </body>
     </html>
   );
