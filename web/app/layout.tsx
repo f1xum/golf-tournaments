@@ -59,7 +59,7 @@ export default function RootLayout({
       <body className="antialiased">
         <RouteProgress />
         <Nav />
-        <main className="max-w-4xl mx-auto px-4 pb-24 sm:pb-20">{children}</main>
+        <main className="max-w-4xl lg:max-w-5xl mx-auto px-4 pb-24 sm:pb-20">{children}</main>
         <BottomNav />
         <Analytics />
         <PageTracker />
