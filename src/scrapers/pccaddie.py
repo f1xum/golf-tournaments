@@ -504,11 +504,30 @@ class PCCaddieScraper(BaseScraper):
             except Exception as e:
                 print(f"  ⚠ Failed to store course info: {e}")
 
+    @staticmethod
+    def _normalize_club_name(name: str) -> str:
+        """Normalize club name for fuzzy matching."""
+        n = name.lower().strip()
+        # Collapse "golf club" / "golf-club" / "golfclub" → "golfclub"
+        n = n.replace("golf-club", "golfclub").replace("golf club", "golfclub")
+        # Normalize "e. V." → "ev", "e.V." → "ev"
+        n = n.replace("e. v.", "ev").replace("e.v.", "ev")
+        # Drop common suffixes that differ between sources
+        for suffix in ("gmbh", "gmbh & co. kg", "gmbh & co kg"):
+            n = n.replace(suffix, "")
+        return n.strip()
+
     def _find_club(self, club_name: str, club_by_name: dict) -> dict | None:
         if club_name in club_by_name:
             return club_by_name[club_name]
+        # Substring match
         name_lower = club_name.lower()
         for name, club in club_by_name.items():
             if name_lower in name.lower() or name.lower() in name_lower:
+                return club
+        # Normalized fuzzy match
+        norm = self._normalize_club_name(club_name)
+        for name, club in club_by_name.items():
+            if self._normalize_club_name(name) == norm:
                 return club
         return self.db.find_club_by_name(club_name)
