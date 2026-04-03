@@ -3,13 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Filter known bots via User-Agent
+    const ua = request.headers.get('user-agent') || '';
+    if (/bot|crawl|spider|slurp|facebookexternalhit|bingpreview|semrush|ahref|bytespider|gptbot|claudebot/i.test(ua)) {
+      return NextResponse.json({ ok: true });
+    }
+
     const { path } = await request.json();
     if (!path || typeof path !== 'string') {
       return NextResponse.json({ error: 'missing path' }, { status: 400 });
     }
 
-    // Only track meaningful pages, skip API routes and static assets
-    if (path.startsWith('/api') || path.startsWith('/_next')) {
+    // Only track meaningful pages, skip API routes, static assets, and admin
+    if (path.startsWith('/api') || path.startsWith('/_next') || path.startsWith('/admin')) {
       return NextResponse.json({ ok: true });
     }
 

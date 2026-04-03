@@ -22,7 +22,7 @@ export default async function AdminPage() {
   if (profile?.role !== 'admin') redirect('/');
 
   return (
-    <div className="py-6">
+    <div className="py-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-1">Analytics</h1>
       <p className="text-gray-500 text-sm mb-6">Traffic & Engagement</p>
       <AdminDashboard />
