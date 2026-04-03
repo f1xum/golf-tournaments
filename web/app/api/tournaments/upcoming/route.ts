@@ -3,7 +3,7 @@ import { todayISO } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 
 const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data';
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = 5000;
 
 /* Keep only the raw_data fields used for filtering + display, drop everything else */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,28 +37,32 @@ export async function GET() {
   const supabase = await createClient();
   const today = todayISO();
 
-  const { count } = await supabase
-    .from('tournaments')
-    .select('id', { count: 'exact', head: true })
-    .gte('date_start', today);
+  // Fetch all upcoming tournaments sequentially to avoid rate limits
+  const all: ReturnType<typeof slim>[] = [];
+  let offset = 0;
 
-  if (!count || count === 0) {
-    return NextResponse.json([]);
-  }
-
-  const totalPages = Math.ceil(count / PAGE_SIZE);
-  const fetches = Array.from({ length: totalPages }, (_, i) => {
-    const offset = i * PAGE_SIZE;
-    return supabase
+  while (true) {
+    const { data, error } = await supabase
       .from('tournaments')
       .select(COLUMNS)
       .gte('date_start', today)
       .order('date_start', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
-  });
 
-  const results = await Promise.all(fetches);
-  const all = results.flatMap(({ data }) => data ?? []).map(slim);
+    if (error) {
+      console.error('[upcoming] fetch error:', error.message);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    for (const t of data) {
+      all.push(slim(t));
+    }
+
+    if (data.length < PAGE_SIZE) break; // last page
+    offset += PAGE_SIZE;
+  }
 
   return NextResponse.json(all, {
     headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
