@@ -29,6 +29,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
+  // Only production actually generates + emails. Preview/dev deploys share the
+  // same Supabase, so running the RPC here would pollute real notifications
+  // and sending emails would hit real users.
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+    return NextResponse.json({ skipped: 'non-production', env: process.env.VERCEL_ENV });
+  }
+
   const supabase = createServiceClient();
 
   const { data: genData, error: genError } = await supabase.rpc('generate_all_notifications');
