@@ -226,9 +226,9 @@ export default async function HomePage() {
         <div className="mb-8 bg-accent-light dark:bg-[#1a2b22] border border-accent/20 dark:border-[#2d4a3a] rounded-xl p-6">
           <div className="text-center mb-4">
             <Sparkles size={22} className="text-accent mx-auto mb-2" />
-            <h2 className="text-lg font-bold mb-1">Turniere, die zu dir passen</h2>
+            <h2 className="text-lg font-bold mb-1">Golfturniere, die zu dir passen</h2>
             <p className="text-sm text-gray-600 dark:text-[#b8b8b8]">
-              Personalisierte Empfehlungen basierend auf deinem Profil
+              Für dich personalisierte Empfehlungen basierend auf deinem Profil
             </p>
           </div>
 
@@ -250,7 +250,7 @@ export default async function HomePage() {
             <div className="flex items-start gap-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-2.5">
               <Heart size={14} className="text-accent shrink-0 mt-0.5" />
               <div>
-                <div className="text-xs font-semibold">Deine Favoriten</div>
+                <div className="text-xs font-semibold">Deine Lieblingsclubs</div>
                 <div className="text-[11px] text-gray-500">Turniere bei Clubs, die du liebst</div>
               </div>
             </div>
