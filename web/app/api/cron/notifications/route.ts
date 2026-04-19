@@ -86,6 +86,14 @@ export async function GET(request: Request) {
     page += 1;
   }
 
+  // Safety valve: when NOTIFICATION_EMAIL_ALLOWLIST is set (comma-separated
+  // emails), only send to those addresses. Unset it to send to everyone.
+  const allowlist = (process.env.NOTIFICATION_EMAIL_ALLOWLIST ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const allowlistActive = allowlist.length > 0;
+
   const recipients: DigestRecipient[] = [];
   const skipped: { userId: string; reason: string }[] = [];
 
@@ -93,6 +101,10 @@ export async function GET(request: Request) {
     const email = emailById.get(userId);
     if (!email) {
       skipped.push({ userId, reason: 'no email' });
+      continue;
+    }
+    if (allowlistActive && !allowlist.includes(email.toLowerCase())) {
+      skipped.push({ userId, reason: 'not in allowlist' });
       continue;
     }
     const items: DigestItem[] = rows
@@ -138,6 +150,7 @@ export async function GET(request: Request) {
     generated,
     emailed: sentIds.length,
     recipients: recipients.length,
+    allowlistActive,
     skipped,
     failed: results.filter((r) => r.error).map((r) => ({ userId: r.userId, error: r.error })),
   });
