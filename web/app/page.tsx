@@ -61,7 +61,7 @@ export default async function HomePage() {
       {/* For You CTA — logged in */}
       {isLoggedIn && (
         <Link
-          href="/für-dich"
+          href="/fuer-dich"
           className="group block mb-8 bg-accent text-white rounded-xl p-5 shadow-sm hover:shadow-md hover:bg-accent/95 transition-all"
         >
           <div className="flex items-center gap-4">

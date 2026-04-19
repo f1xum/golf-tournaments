@@ -120,7 +120,7 @@ export default function NotificationList({ notifications: initial, tournaments }
           const href = tournament
             ? `/turniere/${tournament.id}`
             : n.type === 'new_tournament_nearby' || n.type === 'hcp_match'
-            ? '/für-dich'
+            ? '/fuer-dich'
             : null;
 
           if (href) {

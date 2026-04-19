@@ -60,7 +60,7 @@ function renderHtml(recipient: DigestRecipient): string {
           const link = item.tournament_id
             ? `${APP_URL}/turniere/${item.tournament_id}`
             : item.type === 'new_tournament_nearby' || item.type === 'hcp_match'
-            ? `${APP_URL}/f%C3%BCr-dich`
+            ? `${APP_URL}/fuer-dich`
             : APP_URL;
           const body = item.body ? escapeHtml(item.body) : '';
           return `
