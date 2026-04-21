@@ -117,9 +117,15 @@ export default function NotificationList({ notifications: initial, tournaments }
             </div>
           );
 
-          if (tournament) {
+          const href = tournament
+            ? `/turniere/${tournament.id}`
+            : n.type === 'new_tournament_nearby' || n.type === 'hcp_match'
+            ? '/fuer-dich'
+            : null;
+
+          if (href) {
             return (
-              <Link key={n.id} href={`/turniere/${tournament.id}`} onClick={() => !n.read && markAsRead(n.id)}>
+              <Link key={n.id} href={href} onClick={() => !n.read && markAsRead(n.id)}>
                 {content}
               </Link>
             );

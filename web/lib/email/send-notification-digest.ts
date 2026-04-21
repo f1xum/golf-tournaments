@@ -59,6 +59,8 @@ function renderHtml(recipient: DigestRecipient): string {
         .map((item) => {
           const link = item.tournament_id
             ? `${APP_URL}/turniere/${item.tournament_id}`
+            : item.type === 'new_tournament_nearby' || item.type === 'hcp_match'
+            ? `${APP_URL}/fuer-dich`
             : APP_URL;
           const body = item.body ? escapeHtml(item.body) : '';
           return `
@@ -118,8 +120,12 @@ export async function sendNotificationDigests(
 
   const resend = new Resend(apiKey);
   const results: DigestResult[] = [];
+  // Resend free tier caps at 5 requests/sec. 250ms gap = 4/sec, well under.
+  const SEND_DELAY_MS = 250;
 
-  for (const recipient of recipients) {
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, SEND_DELAY_MS));
     try {
       const { error } = await resend.emails.send({
         from,
