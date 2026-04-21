@@ -49,7 +49,7 @@ export default function RecommendationPrefs({ profile }: Props) {
             <Sparkles size={18} className="text-accent" />
             <div>
               <span className="text-sm font-semibold">Für dich – Empfehlungen</span>
-              <p className="text-xs text-gray-400 mt-0.5">Welche Turniere wir dir vorschlagen</p>
+              <p className="text-xs text-gray-400 mt-0.5">Welche Turniere sollen wir dir vorschlagen</p>
             </div>
           </div>
           <ChevronDown size={16} className="text-gray-400 transition-transform group-open:rotate-180" />
