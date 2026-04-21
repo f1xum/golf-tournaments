@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Profile, Tournament } from '@/lib/types';
 import { todayISO, formatDateFull, formatToLabel } from '@/lib/utils';
 import { scoreTournaments, type ScoredTournament } from '@/lib/recommendations';
+import { ExpandableList } from './expandable-list';
 
 export const metadata = {
   title: 'Für dich – The Pin',
@@ -98,7 +99,7 @@ export default async function FuerDichPage() {
   const savedPast = (savedPastRows ?? []) as Tournament[];
   const newThisWeek = scoreTournaments((newRows ?? []) as Tournament[], scoringProfile, clubs, savedClubIds)
     .filter((t) => t.score > 0)
-    .slice(0, 8);
+    .slice(0, 5);
 
   const notSaved = scored.filter((t) => !savedTournamentIds.has(t.id));
   const maxDist = profile?.recommendation_max_distance ?? 100;
@@ -183,11 +184,11 @@ export default async function FuerDichPage() {
           {hasNew && (
             <section className={hasSavedUpcoming ? 'lg:col-span-2' : ''}>
               <SectionHeader icon={Sparkles} title="Neu diese Woche" count={newThisWeek.length} />
-              <div className="space-y-2">
+              <ExpandableList initialCount={3} expandedCount={5} viewMoreHref="/turniere">
                 {newThisWeek.map((t) => (
                   <RecommendationRow key={t.id} t={t} clubs={clubs} />
                 ))}
-              </div>
+              </ExpandableList>
             </section>
           )}
           {hasSavedUpcoming && (

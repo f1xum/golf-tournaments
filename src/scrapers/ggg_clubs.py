@@ -264,24 +264,38 @@ class GGGClubsScraper(BaseScraper):
         return None
 
     def _extract_email(self, soup: BeautifulSoup) -> str | None:
-        """Extract email, handling HTML entity encoding."""
-        mailto = soup.find("a", href=re.compile(r"^mailto:", re.I))
-        if mailto:
+        """Extract the club's email from the sidebar only.
+
+        The page header/footer contains german-golf-guide.de's own mailto
+        links — those are not the club's email. We scope to the sidebar
+        (same as `_extract_website`) and filter out GGG addresses.
+        """
+        sidebar = soup.select_one("div.col-md-4") or soup
+        for mailto in sidebar.find_all("a", href=re.compile(r"^mailto:", re.I)):
             href = mailto.get("href", "")
-            # Decode HTML entities and URL encoding
-            email = href.replace("mailto:", "")
+            # Strip the scheme and any leftover junk like `mailto://`
+            email = re.sub(r"^mailto:+/*", "", href, flags=re.I)
             email = html_lib.unescape(email)
-            email = unquote(email)
-            return email.strip() or None
+            email = unquote(email).strip()
+            if not email or "german-golf-guide.de" in email.lower():
+                continue
+            # Basic sanity check
+            if "@" in email and "." in email.split("@", 1)[1]:
+                return email
         return None
 
     def _extract_phone(self, soup: BeautifulSoup) -> str | None:
-        """Extract phone number."""
-        tel_link = soup.find("a", href=re.compile(r"^tel:"))
-        if tel_link:
-            return tel_link.get_text(strip=True) or tel_link["href"].replace("tel:", "")
+        """Extract the club's phone from the sidebar or contact section.
 
-        # Look for phone pattern in Ansprechpartner section
+        Like email, the page-level tel: links belong to GGG itself.
+        """
+        sidebar = soup.select_one("div.col-md-4") or soup
+        for tel in sidebar.find_all("a", href=re.compile(r"^tel:", re.I)):
+            text = tel.get_text(strip=True)
+            number = text or tel["href"].replace("tel:", "").strip()
+            if number and not self._looks_like_ggg_phone(number):
+                return number
+
         contact_heading = soup.find("p", class_="text-primary", string=re.compile(r"Ansprechpartner", re.I))
         if contact_heading:
             section = contact_heading.find_parent()
@@ -289,8 +303,17 @@ class GGGClubsScraper(BaseScraper):
                 text = section.get_text()
                 phone_match = re.search(r"(?:Tel|Fon|Telefon)[.:\s]*([0-9\s\-/()]+)", text, re.I)
                 if phone_match:
-                    return phone_match.group(1).strip()
+                    number = phone_match.group(1).strip()
+                    if not self._looks_like_ggg_phone(number):
+                        return number
         return None
+
+    @staticmethod
+    def _looks_like_ggg_phone(number: str) -> bool:
+        """GGG's own support line leaks into every page. Filter it out."""
+        digits = re.sub(r"\D", "", number)
+        # +49 221 98606 … any variant
+        return "22198606" in digits
 
     def _extract_logo(self, soup: BeautifulSoup) -> str | None:
         """Extract club logo URL."""
