@@ -38,11 +38,19 @@ export const FORMAT_OPTIONS: { value: string; label: string }[] = [
   { value: 'scramble', label: 'Scramble' },
   { value: 'matchplay', label: 'Lochspiel' },
   { value: 'best_ball', label: 'Best Ball' },
-  { value: 'texas_scramble', label: 'Texas Scramble' },
   { value: 'chapman', label: 'Chapman' },
   { value: 'vierer', label: 'Vierer' },
 ];
 
-export const FORMAT_LABELS: Record<string, string> = Object.fromEntries(
-  FORMAT_OPTIONS.map((f) => [f.value, f.label])
-);
+// Filter synonyms: selecting a chip on the left matches any DB value on
+// the right. Texas Scramble is rolled into Scramble since browsing users
+// rarely care about the distinction.
+export const FORMAT_FILTER_SYNONYMS: Record<string, string[]> = {
+  scramble: ['scramble', 'texas_scramble'],
+};
+
+export const FORMAT_LABELS: Record<string, string> = {
+  ...Object.fromEntries(FORMAT_OPTIONS.map((f) => [f.value, f.label])),
+  texas_scramble: 'Texas Scramble',
+  other: 'Sonstiges',
+};
