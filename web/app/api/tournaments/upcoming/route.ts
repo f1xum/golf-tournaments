@@ -3,7 +3,11 @@ import { todayISO } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 
 const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data';
-const PAGE_SIZE = 5000;
+// Supabase PostgREST caps each response at 1000 rows by default.
+// Asking for more via .range() silently returns 1000 anyway, which makes
+// the `data.length < PAGE_SIZE` break condition fire on the first page
+// and truncates the list. Keep this aligned with Supabase's server-side cap.
+const PAGE_SIZE = 1000;
 
 /* Keep only the raw_data fields used for filtering + display, drop everything else */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
