@@ -126,6 +126,7 @@ class BGVTournamentsScraper(BaseScraper):
             raw_data={
                 "venue": venue,
                 "turnierart": turnierart,
+                "wertungsart": format_str,
                 "meldeschluss": meldeschluss,
             },
         )

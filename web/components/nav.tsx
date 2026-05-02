@@ -4,15 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, Calendar, Building2, Map, LogIn, UserCircle, Bell, Sun, Moon } from 'lucide-react';
+import { Home, Calendar, Building2, Map, LogIn, UserCircle, Bell, Sun, Moon, Sparkles, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 const links = [
-  { href: '/', label: 'Home', icon: Home, exact: true },
-  { href: '/turniere', label: 'Turniere', icon: Calendar },
-  { href: '/clubs', label: 'Clubs', icon: Building2 },
-  { href: '/karte', label: 'Karte', icon: Map },
+  { href: '/', label: 'Home', icon: Home, exact: true, requiresAuth: false },
+  { href: '/fuer-dich', label: 'Für dich', icon: Sparkles, exact: false, requiresAuth: true },
+  { href: '/turniere', label: 'Turniere', icon: Calendar, exact: false, requiresAuth: false },
+  { href: '/clubs', label: 'Clubs', icon: Building2, exact: false, requiresAuth: false },
+  { href: '/karte', label: 'Karte', icon: Map, exact: false, requiresAuth: false },
 ];
 
 export default function Nav() {
@@ -61,19 +62,32 @@ export default function Nav() {
         </Link>
 
         <div className="hidden sm:flex gap-1">
-          {links.map(({ href, label, icon: Icon, exact }) => {
+          {links.map(({ href, label, icon: Icon, exact, requiresAuth }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
+            const locked = requiresAuth && !user;
+            const linkHref = locked ? `/login?next=${encodeURIComponent(href)}` : href;
             return (
               <Link
                 key={href}
-                href={href}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                href={linkHref}
+                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active
                     ? 'bg-accent-light text-accent dark:bg-[#1a3329] dark:text-[#4ead6e]'
+                    : locked
+                    ? 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
+                title={locked ? 'Anmelden, um Empfehlungen zu sehen' : undefined}
               >
-                <Icon size={16} />
+                <span className="relative inline-flex">
+                  <Icon size={16} />
+                  {locked && (
+                    <Lock
+                      size={9}
+                      className="absolute -bottom-0.5 -right-1 text-gray-400 bg-white rounded-full p-[1px]"
+                    />
+                  )}
+                </span>
                 <span>{label}</span>
               </Link>
             );

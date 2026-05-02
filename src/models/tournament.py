@@ -25,22 +25,30 @@ class TournamentFormat(StrEnum):
     OTHER = "other"
 
 
-# German → English format mapping
-FORMAT_MAPPING: dict[str, TournamentFormat] = {
-    "zählspiel": TournamentFormat.STROKEPLAY,
-    "zaehlspiel": TournamentFormat.STROKEPLAY,
-    "strokeplay": TournamentFormat.STROKEPLAY,
-    "stableford": TournamentFormat.STABLEFORD,
-    "lochspiel": TournamentFormat.MATCHPLAY,
-    "matchplay": TournamentFormat.MATCHPLAY,
-    "scramble": TournamentFormat.SCRAMBLE,
-    "texas scramble": TournamentFormat.TEXAS_SCRAMBLE,
-    "texas-scramble": TournamentFormat.TEXAS_SCRAMBLE,
-    "best ball": TournamentFormat.BEST_BALL,
-    "bestball": TournamentFormat.BEST_BALL,
-    "vierer": TournamentFormat.VIERER,
-    "chapman": TournamentFormat.CHAPMAN,
-}
+# Ordered substring patterns. First match wins, so compound formats
+# ("texas scramble") must come before their simpler stems ("scramble").
+# Real input is messy: "Einzel - Texas Scramble (Stableford - 2 Spieler)",
+# "Vierer / Scramble", "Einzel Zählspiel nach Stableford" — all handled
+# by checking for the most specific known format word anywhere in the string.
+FORMAT_PATTERNS: list[tuple[str, TournamentFormat]] = [
+    ("texas scramble", TournamentFormat.TEXAS_SCRAMBLE),
+    ("texas-scramble", TournamentFormat.TEXAS_SCRAMBLE),
+    ("chapman", TournamentFormat.CHAPMAN),
+    ("best ball", TournamentFormat.BEST_BALL),
+    ("best-ball", TournamentFormat.BEST_BALL),
+    ("bestball", TournamentFormat.BEST_BALL),
+    ("scramble", TournamentFormat.SCRAMBLE),
+    ("vierer", TournamentFormat.VIERER),
+    ("foursome", TournamentFormat.VIERER),
+    ("matchplay", TournamentFormat.MATCHPLAY),
+    ("match play", TournamentFormat.MATCHPLAY),
+    ("lochspiel", TournamentFormat.MATCHPLAY),
+    ("stableford", TournamentFormat.STABLEFORD),
+    ("strokeplay", TournamentFormat.STROKEPLAY),
+    ("stroke play", TournamentFormat.STROKEPLAY),
+    ("zählspiel", TournamentFormat.STROKEPLAY),
+    ("zaehlspiel", TournamentFormat.STROKEPLAY),
+]
 
 
 class Tournament(BaseModel):
@@ -72,8 +80,13 @@ class Tournament(BaseModel):
             return None
         if isinstance(v, TournamentFormat):
             return v
-        normalized = FORMAT_MAPPING.get(v.lower().strip())
-        return normalized or TournamentFormat.OTHER
+        s = v.lower().strip()
+        if not s:
+            return None
+        for pattern, fmt in FORMAT_PATTERNS:
+            if pattern in s:
+                return fmt
+        return TournamentFormat.OTHER
 
     @model_validator(mode="after")
     def default_date_end(self):

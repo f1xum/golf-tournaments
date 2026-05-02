@@ -7,6 +7,7 @@ import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { extractHoles } from '@/lib/tournament-utils';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
+import { FORMAT_FILTER_SYNONYMS } from '@/lib/constants';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
 import { ChevronDown, Clock, Lock, Search, X } from 'lucide-react';
@@ -50,7 +51,10 @@ function applyFilters(
       const dist = distanceKm(refPoint[0], refPoint[1], club.latitude, club.longitude);
       if (dist > parseInt(filters.distance)) return false;
     }
-    if (filters.format && t.format !== filters.format) return false;
+    if (filters.format) {
+      const allowed = FORMAT_FILTER_SYNONYMS[filters.format] ?? [filters.format];
+      if (!allowed.includes(t.format || '')) return false;
+    }
     if (filters.fee !== 'all') {
       const maxFee = parseInt(filters.fee);
       if (maxFee === 0 && t.entry_fee && t.entry_fee > 0) return false;
