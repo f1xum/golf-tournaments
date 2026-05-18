@@ -19,9 +19,11 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
 
   // Form state
+  const [username, setUsername] = useState(profile?.username ?? '');
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [handicap, setHandicap] = useState(profile?.handicap?.toString() ?? '');
   const [homeClubId, setHomeClubId] = useState(profile?.home_club_id ?? '');
@@ -46,11 +48,31 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
 
   async function finish() {
     setSaving(true);
+    setSaveError(null);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setSaving(false); return; }
 
-    await supabase.from('profiles').update({
+    // Username uniqueness check (only if changed)
+    if (username && username !== profile?.username) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .neq('id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        setSaveError('Dieser Benutzername ist bereits vergeben.');
+        setSaving(false);
+        setDirection('back');
+        setStep(1);
+        return;
+      }
+    }
+
+    const { error } = await supabase.from('profiles').update({
+      username: username || null,
       display_name: displayName || null,
       handicap: handicap ? parseFloat(handicap) : null,
       home_club_id: homeClubId || null,
@@ -63,8 +85,15 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
       updated_at: new Date().toISOString(),
     }).eq('id', user.id);
 
+    if (error) {
+      setSaveError('Speichern fehlgeschlagen. Bitte versuche es erneut.');
+      setSaving(false);
+      return;
+    }
+
     setDirection('forward');
     setStep(TOTAL_STEPS);
+    setSaving(false);
   }
 
   function goToApp() {
@@ -108,12 +137,15 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
           )}
           {step === 1 && (
             <ProfileStep
+              username={username}
               displayName={displayName}
               handicap={handicap}
+              onUsernameChange={setUsername}
               onDisplayNameChange={setDisplayName}
               onHandicapChange={setHandicap}
               onNext={next}
               onBack={back}
+              externalError={saveError}
             />
           )}
           {step === 2 && (
@@ -192,20 +224,31 @@ function WelcomeStep({ email, onNext }: { email: string; onNext: () => void }) {
 
 /* ─── Step 1: Profile ─── */
 function ProfileStep({
+  username,
   displayName,
   handicap,
+  onUsernameChange,
   onDisplayNameChange,
   onHandicapChange,
   onNext,
   onBack,
+  externalError,
 }: {
+  username: string;
   displayName: string;
   handicap: string;
+  onUsernameChange: (v: string) => void;
   onDisplayNameChange: (v: string) => void;
   onHandicapChange: (v: string) => void;
   onNext: () => void;
   onBack: () => void;
+  externalError: string | null;
 }) {
+  const trimmedName = displayName.trim();
+  const trimmedUsername = username.trim();
+  const usernameValid = trimmedUsername.length >= 3;
+  const canContinue = trimmedName.length > 0 && usernameValid;
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
@@ -221,7 +264,7 @@ function ProfileStep({
       <div className="space-y-4 mb-8">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Name
+            Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -230,7 +273,29 @@ function ProfileStep({
             className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
             placeholder="Dein Vorname oder Spitzname"
             autoFocus
+            required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Benutzername <span className="text-red-500">*</span>
+          </label>
+          <div className="flex items-center">
+            <span className="px-3 py-3 bg-gray-50 border border-r-0 border-gray-200 rounded-l-xl text-sm text-gray-400">@</span>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => onUsernameChange(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''))}
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-r-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              placeholder="benutzername"
+              maxLength={30}
+              required
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">
+            Kleinbuchstaben, Zahlen, Punkte und Unterstriche. Mind. 3 Zeichen.
+          </p>
         </div>
 
         <div>
@@ -253,7 +318,13 @@ function ProfileStep({
         </div>
       </div>
 
-      <StepButtons onNext={onNext} onBack={onBack} />
+      {externalError && (
+        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {externalError}
+        </div>
+      )}
+
+      <StepButtons onNext={onNext} onBack={onBack} nextDisabled={!canContinue} />
     </div>
   );
 }
@@ -289,7 +360,9 @@ function ClubStep({
           <MapPin size={20} className="text-accent" />
         </div>
         <div>
-          <h2 className="text-xl font-bold">Dein Heimatclub</h2>
+          <h2 className="text-xl font-bold">
+            Dein Heimatclub <span className="text-red-500">*</span>
+          </h2>
           <p className="text-sm text-gray-400">Für Turniere in deiner Nähe.</p>
         </div>
       </div>
@@ -355,7 +428,7 @@ function ClubStep({
       )}
 
       <div className="mt-6">
-        <StepButtons onNext={onNext} onBack={onBack} nextLabel={homeClubId ? 'Weiter' : 'Überspringen'} />
+        <StepButtons onNext={onNext} onBack={onBack} nextDisabled={!homeClubId} />
       </div>
     </div>
   );
@@ -636,10 +709,12 @@ function StepButtons({
   onNext,
   onBack,
   nextLabel = 'Weiter',
+  nextDisabled = false,
 }: {
   onNext: () => void;
   onBack: () => void;
   nextLabel?: string;
+  nextDisabled?: boolean;
 }) {
   return (
     <div className="flex gap-3">
@@ -651,7 +726,8 @@ function StepButtons({
       </button>
       <button
         onClick={onNext}
-        className="flex-1 py-3 bg-accent text-white font-semibold rounded-xl hover:bg-accent/90 transition-colors text-base flex items-center justify-center gap-2"
+        disabled={nextDisabled}
+        className="flex-1 py-3 bg-accent text-white font-semibold rounded-xl hover:bg-accent/90 transition-colors text-base flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent"
       >
         {nextLabel}
         <ChevronRight size={18} />

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
 import RouteProgress from '@/components/route-progress';
+import ProfileCompletionBanner from '@/components/profile-completion-banner';
 import './globals.css';
 import { Analytics } from "@vercel/analytics/next"
 import PageTracker from '@/components/page-tracker';
@@ -59,6 +60,7 @@ export default function RootLayout({
       <body className="antialiased">
         <RouteProgress />
         <Nav />
+        <ProfileCompletionBanner />
         <main className="max-w-4xl lg:max-w-5xl mx-auto px-4 pb-24 sm:pb-20">{children}</main>
         <BottomNav />
         <Analytics />
