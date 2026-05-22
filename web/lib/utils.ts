@@ -9,8 +9,13 @@ export function getMonday(d: Date): Date {
   return date;
 }
 
+// Local-date YYYY-MM-DD. We deliberately avoid toISOString() — it converts to
+// UTC first, which in CEST (UTC+2) flips local midnight to the previous day.
 export function toISO(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function formatDateShort(d: Date): string {
@@ -29,7 +34,7 @@ export function formatToLabel(format: string | null): string {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().split('T')[0];
+  return toISO(new Date());
 }
 
 /** Haversine distance between two coordinates in km */
