@@ -16,6 +16,7 @@ export default function CalendarCard({ tournament: t, club }: Props) {
   return (
     <Link
       href={`/turniere/${t.id}`}
+      prefetch={false}
       className="block bg-white dark:bg-[#222222] border border-gray-200 dark:border-[#333] rounded-md p-2.5 hover:shadow-sm transition-shadow cursor-pointer"
     >
       <div className="font-semibold text-sm leading-snug mb-0.5 dark:text-[#f5f5f5]">{t.name}</div>

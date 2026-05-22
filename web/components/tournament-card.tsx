@@ -40,6 +40,7 @@ export default function TournamentCard({ tournament: t, club, userId, initialSav
   return (
     <Link
       href={`/turniere/${t.id}`}
+      prefetch={false}
       className="block bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
     >
       {/* Top row */}

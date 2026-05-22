@@ -115,6 +115,7 @@ function ToggleSection({
                   <Link
                     key={t.id}
                     href={`/turniere/${t.id}`}
+                    prefetch={false}
                     className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors"
                   >
                     {/* Date badge */}

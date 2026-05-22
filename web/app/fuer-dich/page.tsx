@@ -404,6 +404,7 @@ function ClusterRow({
   return (
     <Link
       href={`/turniere/${t.id}`}
+      prefetch={false}
       className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
     >
       <div className="shrink-0 w-10 h-10 bg-accent-light rounded-lg flex flex-col items-center justify-center">
@@ -444,6 +445,7 @@ function RecommendationRow({
   return (
     <Link
       href={`/turniere/${t.id}`}
+      prefetch={false}
       className={`flex items-center gap-3 bg-white border rounded-xl p-3.5 transition-shadow ${
         past ? 'border-gray-100 opacity-75 hover:opacity-100' : 'border-gray-200 hover:shadow-sm'
       }`}
