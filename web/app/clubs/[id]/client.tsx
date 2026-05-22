@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { GolfClub, Tournament } from '@/lib/types';
@@ -22,13 +22,16 @@ interface Props {
   club: GolfClub;
   upcoming: Tournament[];
   past: Tournament[];
+  userId: string | null;
+  savedTournamentIds: string[];
 }
 
-export default function ClubDetailClient({ club, upcoming, past }: Props) {
+export default function ClubDetailClient({ club, upcoming, past, userId, savedTournamentIds }: Props) {
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showPast, setShowPast] = useState(false);
 
   const clubsMap = { [club.id]: club };
+  const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
 
   return (
     <div className="py-6">
@@ -158,7 +161,7 @@ export default function ClubDetailClient({ club, upcoming, past }: Props) {
           {view === 'calendar' ? (
             <WeekCalendar tournaments={upcoming} clubs={clubsMap} />
           ) : (
-            <TournamentList tournaments={upcoming} clubs={clubsMap} />
+            <TournamentList tournaments={upcoming} clubs={clubsMap} savedTournamentIds={savedTournamentIdSet} userId={userId} />
           )}
         </>
       )}
@@ -187,7 +190,7 @@ export default function ClubDetailClient({ club, upcoming, past }: Props) {
 
           {showPast && (
             <div className="mt-3">
-              <TournamentList tournaments={past} clubs={clubsMap} />
+              <TournamentList tournaments={past} clubs={clubsMap} savedTournamentIds={savedTournamentIdSet} userId={userId} />
             </div>
           )}
         </div>

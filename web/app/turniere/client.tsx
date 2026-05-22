@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
@@ -16,6 +17,8 @@ interface Props {
   clubs: Record<string, GolfClub>;
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
+  savedTournamentIds: string[];
+  userId: string | null;
   isLoggedIn: boolean;
 }
 
@@ -111,7 +114,8 @@ function LoadingSkeleton() {
   );
 }
 
-export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
+export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, userId, isLoggedIn }: Props) {
+  const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
@@ -119,13 +123,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, is
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Tournament data — fetched client-side for fast page shell
-  const [upcoming, setUpcoming] = useState<Tournament[]>([]);
-  const [upcomingLoading, setUpcomingLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
-  const [past, setPast] = useState<Tournament[]>([]);
-  const [pastLoading, setPastLoading] = useState(false);
-  const pastLoaded = useRef(false);
 
   const [showLoginToast, setShowLoginToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -134,25 +132,27 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, is
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
   }, []);
 
-  // Fetch upcoming tournaments on mount
-  useEffect(() => {
-    fetch('/api/tournaments/upcoming')
-      .then((r) => r.json())
-      .then((data) => setUpcoming(data as Tournament[]))
-      .finally(() => setUpcomingLoading(false));
-  }, []);
+  // Tournament data — cached in React Query, persisted to localStorage.
+  // On repeat visits the list paints instantly from cache while a fresh
+  // copy is revalidated in the background.
+  const { data: upcoming = [], isPending: upcomingLoading } = useQuery<Tournament[]>({
+    queryKey: ['tournaments', 'upcoming'],
+    queryFn: async () => {
+      const r = await fetch('/api/tournaments/upcoming');
+      if (!r.ok) throw new Error('Failed to load tournaments');
+      return r.json();
+    },
+  });
 
-  // Lazy-load past tournaments when user opens the section
-  useEffect(() => {
-    if (showPast && !pastLoaded.current) {
-      pastLoaded.current = true;
-      setPastLoading(true);
-      fetch('/api/tournaments/past')
-        .then((r) => r.json())
-        .then((data) => setPast(data as Tournament[]))
-        .finally(() => setPastLoading(false));
-    }
-  }, [showPast]);
+  const { data: past = [], isFetching: pastLoading } = useQuery<Tournament[]>({
+    queryKey: ['tournaments', 'past'],
+    queryFn: async () => {
+      const r = await fetch('/api/tournaments/past');
+      if (!r.ok) throw new Error('Failed to load tournaments');
+      return r.json();
+    },
+    enabled: showPast,
+  });
 
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
@@ -316,7 +316,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, is
       ) : view === 'calendar' ? (
         <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
-        <TournamentList tournaments={filteredUpcoming} clubs={clubs} />
+        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
       )}
 
       {/* Past tournaments toggle */}
@@ -349,7 +349,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, is
                 Turniere werden geladen...
               </div>
             ) : filteredPast.length > 0 ? (
-              <TournamentList tournaments={filteredPast} clubs={clubs} />
+              <TournamentList tournaments={filteredPast} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
             ) : (
               <div className="text-center py-8 text-sm text-gray-400">
                 Keine vergangenen Turniere gefunden

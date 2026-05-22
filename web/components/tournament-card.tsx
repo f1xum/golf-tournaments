@@ -7,9 +7,11 @@ import SaveTournamentButton from '@/components/save-tournament-button';
 interface Props {
   tournament: Tournament;
   club?: GolfClub;
+  userId: string | null;
+  initialSaved: boolean;
 }
 
-export default function TournamentCard({ tournament: t, club }: Props) {
+export default function TournamentCard({ tournament: t, club, userId, initialSaved }: Props) {
   const raw = t.raw_data || {};
   const formatLabel = formatToLabel(t.format);
   const dateStr = formatDateFull(t.date_start);
@@ -62,7 +64,7 @@ export default function TournamentCard({ tournament: t, club }: Props) {
       {/* Name & club */}
       <div className="flex items-start justify-between gap-2">
         <div className="font-semibold text-base leading-snug mb-1">{t.name}</div>
-        <SaveTournamentButton tournamentId={t.id} size="sm" />
+        <SaveTournamentButton tournamentId={t.id} userId={userId} initialSaved={initialSaved} size="sm" />
       </div>
       <div className="text-sm text-gray-500 mb-2">
         {club?.name}{club?.city ? ` · ${club.city}` : ''}

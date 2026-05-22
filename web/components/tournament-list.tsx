@@ -8,9 +8,11 @@ import TournamentCard from './tournament-card';
 interface Props {
   tournaments: Tournament[];
   clubs: Record<string, GolfClub>;
+  savedTournamentIds: Set<string>;
+  userId: string | null;
 }
 
-export default function TournamentList({ tournaments, clubs }: Props) {
+export default function TournamentList({ tournaments, clubs, savedTournamentIds, userId }: Props) {
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [sortBy, setSortBy] = useState('date_asc');
 
@@ -51,7 +53,13 @@ export default function TournamentList({ tournaments, clubs }: Props) {
       ) : (
         <div className="flex flex-col gap-3">
           {visible.map((t) => (
-            <TournamentCard key={t.id} tournament={t} club={clubs[t.club_id || '']} />
+            <TournamentCard
+              key={t.id}
+              tournament={t}
+              club={clubs[t.club_id || '']}
+              userId={userId}
+              initialSaved={savedTournamentIds.has(t.id)}
+            />
           ))}
         </div>
       )}

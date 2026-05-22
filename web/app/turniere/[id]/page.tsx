@@ -81,6 +81,17 @@ export default async function TurnierDetailPage({ params }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
+  let initialSaved = false;
+  if (user) {
+    const { data: savedRow } = await supabase
+      .from('saved_tournaments')
+      .select('tournament_id')
+      .eq('user_id', user.id)
+      .eq('tournament_id', id)
+      .maybeSingle();
+    initialSaved = !!savedRow;
+  }
+
   // JSON-LD structured data for Google
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -135,7 +146,13 @@ export default async function TurnierDetailPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <TurnierDetailClient tournament={t} club={club} isLoggedIn={isLoggedIn} />
+      <TurnierDetailClient
+        tournament={t}
+        club={club}
+        isLoggedIn={isLoggedIn}
+        userId={user?.id ?? null}
+        initialSaved={initialSaved}
+      />
     </div>
   );
 }
