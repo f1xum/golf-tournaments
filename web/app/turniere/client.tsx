@@ -114,6 +114,8 @@ function LoadingSkeleton() {
   );
 }
 
+const STATE_STORAGE_KEY = 'thepin-turniere-state';
+
 export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, userId, isLoggedIn }: Props) {
   const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
   const searchParams = useSearchParams();
@@ -124,6 +126,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [showPast, setShowPast] = useState(false);
+  const hydratedRef = useRef(false);
 
   const [showLoginToast, setShowLoginToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -159,6 +162,40 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
     club: clubParam,
   });
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
+
+  // Rehydrate filters/search/view/showPast from sessionStorage on mount so
+  // navigating to a detail page and back preserves the user's exploration state.
+  // ?club=… in the URL always wins, since it's an explicit intent.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STATE_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.filters) {
+          setFilters({
+            ...DEFAULT_FILTERS,
+            ...saved.filters,
+            club: clubParam || saved.filters.club || '',
+          });
+        }
+        if (typeof saved.search === 'string') setSearch(saved.search);
+        if (saved.view === 'calendar' || saved.view === 'list') setView(saved.view);
+        if (typeof saved.showPast === 'boolean') setShowPast(saved.showPast);
+      }
+    } catch {}
+    hydratedRef.current = true;
+  }, [clubParam]);
+
+  // Persist state on change (only after the initial hydration pass).
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    try {
+      sessionStorage.setItem(
+        STATE_STORAGE_KEY,
+        JSON.stringify({ filters, search, view, showPast })
+      );
+    } catch {}
+  }, [filters, search, view, showPast]);
 
   // Scroll to top on mount to prevent focus jumping to calendar
   useEffect(() => {
