@@ -17,6 +17,8 @@ interface Props {
   clubs: Record<string, GolfClub>;
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
+  savedTournamentIds: string[];
+  userId: string | null;
   isLoggedIn: boolean;
 }
 
@@ -112,7 +114,8 @@ function LoadingSkeleton() {
   );
 }
 
-export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, isLoggedIn }: Props) {
+export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, userId, isLoggedIn }: Props) {
+  const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
 
@@ -313,7 +316,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, is
       ) : view === 'calendar' ? (
         <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
-        <TournamentList tournaments={filteredUpcoming} clubs={clubs} />
+        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
       )}
 
       {/* Past tournaments toggle */}
@@ -346,7 +349,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, is
                 Turniere werden geladen...
               </div>
             ) : filteredPast.length > 0 ? (
-              <TournamentList tournaments={filteredPast} clubs={clubs} />
+              <TournamentList tournaments={filteredPast} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
             ) : (
               <div className="text-center py-8 text-sm text-gray-400">
                 Keine vergangenen Turniere gefunden

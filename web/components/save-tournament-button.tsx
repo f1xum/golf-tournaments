@@ -7,36 +7,16 @@ import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   tournamentId: string;
+  userId: string | null;
+  initialSaved: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export default function SaveTournamentButton({ tournamentId, size = 'md' }: Props) {
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+export default function SaveTournamentButton({ tournamentId, userId, initialSaved, size = 'md' }: Props) {
+  const [saved, setSaved] = useState(initialSaved);
+  const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      setUserId(user.id);
-      supabase
-        .from('saved_tournaments')
-        .select('tournament_id')
-        .eq('user_id', user.id)
-        .eq('tournament_id', tournamentId)
-        .maybeSingle()
-        .then(({ data }) => {
-          setSaved(!!data);
-          setLoading(false);
-        });
-    });
-  }, [tournamentId]);
 
   useEffect(() => {
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
@@ -71,7 +51,7 @@ export default function SaveTournamentButton({ tournamentId, size = 'md' }: Prop
   }
 
   // Don't show button if not logged in
-  if (!userId && !loading) return null;
+  if (!userId) return null;
 
   const toast = showToast && (
     <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[10001] animate-in fade-in slide-in-from-bottom-2">

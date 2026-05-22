@@ -27,7 +27,7 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
   const supabase = await createClient();
   const today = todayISO();
 
-  const [{ data: club }, { data: upcoming }, { data: past }] = await Promise.all([
+  const [{ data: club }, { data: upcoming }, { data: past }, { data: { user } }] = await Promise.all([
     supabase.from('golf_clubs').select('*').eq('id', id).single(),
     supabase
       .from('tournaments')
@@ -42,15 +42,27 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
       .lt('date_start', today)
       .order('date_start', { ascending: false })
       .limit(100),
+    supabase.auth.getUser(),
   ]);
 
   if (!club) notFound();
+
+  let savedTournamentIds: string[] = [];
+  if (user) {
+    const { data: savedTournaments } = await supabase
+      .from('saved_tournaments')
+      .select('tournament_id')
+      .eq('user_id', user.id);
+    savedTournamentIds = (savedTournaments ?? []).map((r) => r.tournament_id);
+  }
 
   return (
     <ClubDetailClient
       club={club as GolfClub}
       upcoming={(upcoming ?? []) as Tournament[]}
       past={(past ?? []) as Tournament[]}
+      userId={user?.id ?? null}
+      savedTournamentIds={savedTournamentIds}
     />
   );
 }
