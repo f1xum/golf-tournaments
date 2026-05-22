@@ -365,7 +365,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-gray-400" />
             <span className="text-sm font-medium text-gray-600">
-              Vergangene Turniere
+              Vergangene Turniere (letzte 6 Tage)
             </span>
             {filteredPast.length > 0 && (
               <span className="text-xs text-gray-400">

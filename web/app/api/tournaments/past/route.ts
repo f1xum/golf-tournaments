@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
-import { todayISO } from '@/lib/utils';
+import { todayISO, toISO } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 
 const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data';
 const PAGE_SIZE = 1000;
+const PAST_WINDOW_DAYS = 6;
 
 /* Keep only the raw_data fields used for filtering + display */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,10 +38,15 @@ export async function GET() {
   const supabase = await createClient();
   const today = todayISO();
 
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - PAST_WINDOW_DAYS);
+  const cutoffStr = toISO(cutoff);
+
   const { count } = await supabase
     .from('tournaments')
     .select('id', { count: 'exact', head: true })
-    .lt('date_start', today);
+    .lt('date_start', today)
+    .gte('date_start', cutoffStr);
 
   if (!count || count === 0) {
     return NextResponse.json([]);
@@ -53,6 +59,7 @@ export async function GET() {
       .from('tournaments')
       .select(COLUMNS)
       .lt('date_start', today)
+      .gte('date_start', cutoffStr)
       .order('date_start', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
   });
