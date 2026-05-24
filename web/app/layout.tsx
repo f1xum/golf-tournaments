@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
 import RouteProgress from '@/components/route-progress';
@@ -68,6 +69,10 @@ export default function RootLayout({
           <Analytics />
           <PageTracker />
         </QueryProvider>
+        <Script
+          src="https://t.contentsquare.net/uxa/97253ff038e20.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
