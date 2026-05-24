@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
 import RouteProgress from '@/components/route-progress';
@@ -8,6 +7,8 @@ import QueryProvider from '@/components/query-provider';
 import './globals.css';
 import { Analytics } from "@vercel/analytics/next"
 import PageTracker from '@/components/page-tracker';
+import CookieConsentManager from '@/components/cookie-consent';
+import SiteFooter from '@/components/site-footer';
 
 export const metadata: Metadata = {
   title: {
@@ -64,15 +65,13 @@ export default function RootLayout({
           <RouteProgress />
           <Nav />
           <ProfileCompletionBanner />
-          <main className="max-w-4xl lg:max-w-5xl mx-auto px-4 pb-24 sm:pb-20">{children}</main>
+          <main className="max-w-4xl lg:max-w-5xl mx-auto px-4">{children}</main>
+          <SiteFooter />
           <BottomNav />
           <Analytics />
           <PageTracker />
         </QueryProvider>
-        <Script
-          src="https://t.contentsquare.net/uxa/97253ff038e20.js"
-          strategy="afterInteractive"
-        />
+        <CookieConsentManager />
       </body>
     </html>
   );
