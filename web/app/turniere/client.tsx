@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
@@ -11,6 +11,7 @@ import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tourna
 import { FORMAT_FILTER_SYNONYMS } from '@/lib/constants';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
+import PullToRefresh from '@/components/pull-to-refresh';
 import { ChevronDown, Clock, Lock, Search, X } from 'lucide-react';
 
 interface Props {
@@ -120,6 +121,14 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
   const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
+  const queryClient = useQueryClient();
+
+  const refreshTournaments = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['tournaments', 'upcoming'] }),
+      queryClient.invalidateQueries({ queryKey: ['tournaments', 'past'] }),
+    ]);
+  };
 
   const [view, setView] = useState<'calendar' | 'list'>(isLoggedIn ? 'calendar' : 'list');
   const [search, setSearch] = useState('');
@@ -231,7 +240,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
   const activeClub = filters.club ? clubs[filters.club] : null;
 
   return (
-    <>
+    <PullToRefresh onRefresh={refreshTournaments}>
       {/* Club filter banner */}
       {activeClub && (
         <div className="flex items-center justify-between bg-accent-light border border-accent/20 rounded-lg px-4 py-2.5 mb-4">
@@ -395,6 +404,6 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
           </div>
         )}
       </div>
-    </>
+    </PullToRefresh>
   );
 }

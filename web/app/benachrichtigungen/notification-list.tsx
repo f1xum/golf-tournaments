@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Bell, Calendar, Clock, MapPin, Target, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Notification, NotificationType, Tournament } from '@/lib/types';
+import { formatTimeAgo } from '@/lib/time-ago';
+import { EmptyState } from '@/components/empty-state';
 
 const typeConfig: Record<NotificationType, { icon: typeof Bell; label: string }> = {
   tournament_reminder: { icon: Calendar, label: 'Erinnerung' },
@@ -41,10 +43,11 @@ export default function NotificationList({ notifications: initial, tournaments }
 
   if (notifications.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-        <Bell size={32} className="mx-auto text-gray-300 mb-3" />
-        <p className="text-sm text-gray-400">Keine Benachrichtigungen.</p>
-      </div>
+      <EmptyState
+        icon={Bell}
+        title="Keine Benachrichtigungen"
+        description="Wir melden uns, sobald es etwas Neues zu deinen gespeicherten Turnieren oder Clubs gibt."
+      />
     );
   }
 
@@ -138,18 +141,3 @@ export default function NotificationList({ notifications: initial, tournaments }
   );
 }
 
-function formatTimeAgo(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHrs = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHrs / 24);
-
-  if (diffMin < 1) return 'gerade eben';
-  if (diffMin < 60) return `vor ${diffMin} Min.`;
-  if (diffHrs < 24) return `vor ${diffHrs} Std.`;
-  if (diffDays === 1) return 'gestern';
-  if (diffDays < 7) return `vor ${diffDays} Tagen`;
-  return date.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
-}

@@ -23,6 +23,11 @@ export default function TournamentCard({ tournament: t, club, userId, initialSav
   const holes = extractHoles(t.raw_data, t.description);
   const meldeschluss = formatMeldeschluss(t.raw_data);
 
+  const isNew = t.created_at
+    // eslint-disable-next-line react-hooks/purity
+    ? Date.now() - new Date(t.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
+    : false;
+
   const slotsText =
     raw.max_participants
       ? raw.free_slots !== null && raw.free_slots !== undefined
@@ -49,6 +54,11 @@ export default function TournamentCard({ tournament: t, club, userId, initialSav
           {dateStr}{endStr}
         </span>
         <div className="flex gap-1.5 ml-2 flex-shrink-0">
+          {isNew && (
+            <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium">
+              Neu
+            </span>
+          )}
           {formatLabel && (
             <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded font-medium">
               {formatLabel}

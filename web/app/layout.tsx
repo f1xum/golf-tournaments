@@ -9,6 +9,7 @@ import { Analytics } from "@vercel/analytics/next"
 import PageTracker from '@/components/page-tracker';
 import CookieConsentManager from '@/components/cookie-consent';
 import SiteFooter from '@/components/site-footer';
+import InstallPrompt from '@/components/install-prompt';
 
 export const metadata: Metadata = {
   title: {
@@ -34,12 +35,22 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://thepin.app',
   },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'The Pin',
+    statusBarStyle: 'default',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#2d6a4f' },
+    { media: '(prefers-color-scheme: dark)', color: '#171717' },
+  ],
 };
 
 export default function RootLayout({
@@ -68,6 +79,7 @@ export default function RootLayout({
           <main className="max-w-4xl lg:max-w-5xl mx-auto px-4">{children}</main>
           <SiteFooter />
           <BottomNav />
+          <InstallPrompt />
           <Analytics />
           <PageTracker />
         </QueryProvider>

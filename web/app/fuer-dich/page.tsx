@@ -6,6 +6,7 @@ import { GolfClub, Profile, Tournament } from '@/lib/types';
 import { todayISO, formatDateFull, formatToLabel } from '@/lib/utils';
 import { scoreTournaments, type ScoredTournament } from '@/lib/recommendations';
 import { ExpandableList } from './expandable-list';
+import { EmptyState } from '@/components/empty-state';
 
 export const metadata = {
   title: 'Für dich – The Pin',
@@ -303,19 +304,12 @@ export default async function FuerDichPage() {
       )}
 
       {!hasAnyContent && (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-          <MapPin size={32} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500 mb-3">Noch keine Empfehlungen.</p>
-          <p className="text-xs text-gray-400 mb-4">
-            Setze deinen Heimatclub und dein Handicap in den Einstellungen, damit wir dir passende Turniere zeigen können.
-          </p>
-          <Link
-            href="/profil/einstellungen"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-          >
-            Profil einrichten →
-          </Link>
-        </div>
+        <EmptyState
+          icon={MapPin}
+          title="Noch keine Empfehlungen"
+          description="Setze deinen Heimatclub und dein Handicap in den Einstellungen, damit wir dir passende Turniere zeigen können."
+          action={{ label: 'Profil einrichten', href: '/profil/einstellungen' }}
+        />
       )}
 
       <div className="mt-8 flex gap-3 justify-center text-sm text-gray-500">

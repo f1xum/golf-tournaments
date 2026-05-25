@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
-import { formatDateFull, formatToLabel } from '@/lib/utils';
+import { formatToLabel } from '@/lib/utils';
 import { Bookmark, Calendar, ChevronDown } from 'lucide-react';
 import AddToCalendarButton from '@/components/add-to-calendar-button';
+import { EmptyState } from '@/components/empty-state';
 
 interface Props {
   upcoming: Tournament[];
@@ -29,18 +30,11 @@ export default function SavedTournaments({ upcoming, past, clubs }: Props) {
       </div>
 
       {total === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-          <Calendar size={32} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-sm text-gray-400">
-            Noch keine Turniere gespeichert.
-          </p>
-          <Link
-            href="/turniere"
-            className="inline-block mt-3 text-sm text-accent hover:underline font-medium"
-          >
-            Turniere entdecken →
-          </Link>
-        </div>
+        <EmptyState
+          icon={Calendar}
+          title="Noch keine Turniere gespeichert"
+          action={{ label: 'Turniere entdecken', href: '/turniere' }}
+        />
       ) : (
         <div className="space-y-4">
           <ToggleSection

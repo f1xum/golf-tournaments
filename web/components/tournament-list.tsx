@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { Calendar } from 'lucide-react';
 import { Tournament, GolfClub } from '@/lib/types';
 import { PAGE_SIZE } from '@/lib/constants';
 import TournamentCard from './tournament-card';
+import { EmptyState } from './empty-state';
 
 interface Props {
   tournaments: Tournament[];
@@ -46,10 +48,11 @@ export default function TournamentList({ tournaments, clubs, savedTournamentIds,
 
       {/* Cards */}
       {visible.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Keine Turniere gefunden</h3>
-          <p>Versuche andere Filter oder einen anderen Zeitraum.</p>
-        </div>
+        <EmptyState
+          icon={Calendar}
+          title="Keine Turniere gefunden"
+          description="Versuche, einen Filter zu entfernen oder einen anderen Zeitraum zu wählen."
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {visible.map((t) => (

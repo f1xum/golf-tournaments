@@ -12,6 +12,7 @@ import { formatDateFull, formatToLabel } from '@/lib/utils';
 import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
 import SaveTournamentButton from '@/components/save-tournament-button';
 import AddToCalendarButton from '@/components/add-to-calendar-button';
+import { formatTimeAgo } from '@/lib/time-ago';
 
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
@@ -301,6 +302,17 @@ export default function TurnierDetailClient({ tournament: t, club, isLoggedIn, u
               Auf {sourceLabel} ansehen →
             </a>
           )}
+
+          {/* Data provenance: always-visible source + last-updated */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-gray-400 pt-2">
+            <span>Quelle: {sourceLabel}</span>
+            {t.updated_at && (
+              <>
+                <span aria-hidden>·</span>
+                <span>Aktualisiert {formatTimeAgo(t.updated_at)}</span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Right column: Club info + Map (1/3 width) */}
