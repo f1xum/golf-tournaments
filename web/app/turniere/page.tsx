@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub } from '@/lib/types';
+import { ScoringProfile } from '@/lib/recommendations';
 import TurniereClient from './client';
 
 export const revalidate = 3600;
@@ -30,12 +31,13 @@ async function getData() {
   let homeClubCoords: [number, number] | null = null;
   let savedClubIds: string[] = [];
   let savedTournamentIds: string[] = [];
+  let scoringProfile: ScoringProfile | null = null;
   const user = userRes.data?.user;
   if (user) {
     const [{ data: profile }, { data: savedClubs }, { data: savedTournaments }] = await Promise.all([
       supabase
         .from('profiles')
-        .select('home_club_id')
+        .select('handicap,home_club_id,recommendation_max_distance,recommendation_prefer_hcp,recommendation_formats')
         .eq('id', user.id)
         .single(),
       supabase
@@ -53,6 +55,9 @@ async function getData() {
         homeClubCoords = [hc.latitude, hc.longitude];
       }
     }
+    if (profile) {
+      scoringProfile = profile as ScoringProfile;
+    }
     savedClubIds = (savedClubs ?? []).map((r) => r.club_id);
     savedTournamentIds = (savedTournaments ?? []).map((r) => r.tournament_id);
   }
@@ -62,13 +67,14 @@ async function getData() {
     homeClubCoords,
     savedClubIds,
     savedTournamentIds,
+    scoringProfile,
     userId: user?.id ?? null,
     isLoggedIn: !!user,
   };
 }
 
 export default async function TurnierePage() {
-  const { clubs, homeClubCoords, savedClubIds, savedTournamentIds, userId, isLoggedIn } = await getData();
+  const { clubs, homeClubCoords, savedClubIds, savedTournamentIds, scoringProfile, userId, isLoggedIn } = await getData();
 
   return (
     <div className="py-6">
@@ -82,6 +88,7 @@ export default async function TurnierePage() {
           homeClubCoords={homeClubCoords}
           savedClubIds={savedClubIds}
           savedTournamentIds={savedTournamentIds}
+          scoringProfile={scoringProfile}
           userId={userId}
           isLoggedIn={isLoggedIn}
         />

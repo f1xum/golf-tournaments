@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { extractHoles } from '@/lib/tournament-utils';
+import { ScoringProfile } from '@/lib/recommendations';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import { FORMAT_FILTER_SYNONYMS } from '@/lib/constants';
 import WeekCalendar from '@/components/week-calendar';
@@ -19,6 +20,7 @@ interface Props {
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
   savedTournamentIds: string[];
+  scoringProfile: ScoringProfile | null;
   userId: string | null;
   isLoggedIn: boolean;
 }
@@ -117,8 +119,9 @@ function LoadingSkeleton() {
 
 const STATE_STORAGE_KEY = 'thepin-turniere-state';
 
-export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, userId, isLoggedIn }: Props) {
+export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, scoringProfile, userId, isLoggedIn }: Props) {
   const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
+  const savedClubIdSet = useMemo(() => new Set(savedClubIds), [savedClubIds]);
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
   const queryClient = useQueryClient();
@@ -362,7 +365,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
       ) : view === 'calendar' ? (
         <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
-        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
+        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} scoringProfile={scoringProfile} savedClubIds={savedClubIdSet} />
       )}
 
       {/* Past tournaments toggle */}

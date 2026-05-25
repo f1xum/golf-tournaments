@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Tournament, GolfClub } from '@/lib/types';
 import { PAGE_SIZE } from '@/lib/constants';
+import { ScoringProfile, scoreTournaments } from '@/lib/recommendations';
 import TournamentCard from './tournament-card';
 import { EmptyState } from './empty-state';
 
@@ -12,18 +13,36 @@ interface Props {
   clubs: Record<string, GolfClub>;
   savedTournamentIds: Set<string>;
   userId: string | null;
+  scoringProfile?: ScoringProfile | null;
+  savedClubIds?: Set<string>;
 }
 
-export default function TournamentList({ tournaments, clubs, savedTournamentIds, userId }: Props) {
+export default function TournamentList({
+  tournaments,
+  clubs,
+  savedTournamentIds,
+  userId,
+  scoringProfile,
+  savedClubIds,
+}: Props) {
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [sortBy, setSortBy] = useState('date_asc');
 
-  const sorted = [...tournaments].sort((a, b) => {
-    if (sortBy === 'date_asc') return a.date_start.localeCompare(b.date_start);
-    if (sortBy === 'date_desc') return b.date_start.localeCompare(a.date_start);
-    if (sortBy === 'fee_asc') return (a.entry_fee || 0) - (b.entry_fee || 0);
-    return 0;
-  });
+  // Match-score sort is only available to logged-in users with a home club set.
+  const canScore = !!(scoringProfile?.home_club_id);
+
+  const sorted = useMemo(() => {
+    if (sortBy === 'score' && canScore && scoringProfile) {
+      // scoreTournaments returns a sorted ScoredTournament[]
+      return scoreTournaments(tournaments, scoringProfile, clubs, savedClubIds ?? new Set());
+    }
+    return [...tournaments].sort((a, b) => {
+      if (sortBy === 'date_asc') return a.date_start.localeCompare(b.date_start);
+      if (sortBy === 'date_desc') return b.date_start.localeCompare(a.date_start);
+      if (sortBy === 'fee_asc') return (a.entry_fee || 0) - (b.entry_fee || 0);
+      return 0;
+    });
+  }, [tournaments, sortBy, canScore, scoringProfile, clubs, savedClubIds]);
 
   const visible = sorted.slice(0, displayCount);
   const hasMore = sorted.length > displayCount;
@@ -40,6 +59,7 @@ export default function TournamentList({ tournaments, clubs, savedTournamentIds,
           onChange={(e) => setSortBy(e.target.value)}
           className="text-sm px-2 py-1 border border-gray-200 rounded bg-white text-gray-500"
         >
+          {canScore && <option value="score">Beste Treffer</option>}
           <option value="date_asc">Datum (aufsteigend)</option>
           <option value="date_desc">Datum (absteigend)</option>
           <option value="fee_asc">Nenngeld (aufsteigend)</option>
