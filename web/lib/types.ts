@@ -1,3 +1,32 @@
+export interface CourseTee {
+  color: string;
+  gender: 'Herren' | 'Damen' | string;
+  course_rating: number;
+  slope: number;
+  par: number;
+  length_m: number;
+}
+
+export interface CourseHole {
+  number: number;
+  video_url?: string | null;
+  thumbnail_url?: string | null;
+  par?: number | null;
+  length_m?: number | null;
+}
+
+export interface CourseData {
+  description?: string;
+  architect?: string;
+  year_designed?: number;
+  course_type?: string;
+  tees?: CourseTee[];
+  photos?: string[];
+  holes?: CourseHole[];
+  source_url?: string;
+  updated_at?: string;
+}
+
 export interface GolfClub {
   id: string;
   name: string;
@@ -18,6 +47,7 @@ export interface GolfClub {
   courses: { name: string; holes: number | null }[] | null;
   has_9_holes: boolean;
   has_18_holes: boolean;
+  course_data?: CourseData | null;
 }
 
 export interface RawData {
