@@ -8,6 +8,7 @@ import { MapPin, ExternalLink, Phone, Mail, Calendar, Clock, ChevronDown, Flag }
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
 import SaveClubButton from '@/components/save-club-button';
+import CourseDetails from '@/components/course-details';
 
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
@@ -115,6 +116,9 @@ export default function ClubDetailClient({ club, upcoming, past, userId, savedTo
           <div className="md:col-span-2" />
         )}
       </div>
+
+      {/* Course details (rendered only when data is populated) */}
+      {club.course_data && <CourseDetails data={club.course_data} />}
 
       {/* Tournaments section */}
       <div className="flex items-center gap-3 mb-4">
