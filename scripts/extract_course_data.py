@@ -38,62 +38,122 @@ MAX_PDF_BYTES = 32 * 1024 * 1024   # Claude PDF input limit is 32 MB
 MAX_PDF_PAGES_HINT = 100           # We'd skip giant docs anyway
 
 
-SYSTEM_PROMPT = """Du extrahierst strukturierte Platzdaten aus offiziellen DGV-Course-Rating-PDFs deutscher Golfclubs.
+SYSTEM_PROMPT = """Du extrahierst strukturierte Platzdaten aus deutschen Golfclub-PDFs (DGV-Course-Rating, Spielvorgabentabellen, Course-Handicap-Lookups).
 
-Antworte AUSSCHLIESSLICH mit gültigem JSON nach diesem Schema (keine Erklärung, kein Markdown):
+Antworte AUSSCHLIESSLICH mit EINEM gültigen JSON-Objekt nach diesem Schema. Kein Markdown, kein erklärender Text vor oder nach dem JSON, keine mehreren JSON-Objekte:
 
 {
   "tees": [
     {
       "color": "Schwarz | Weiß | Gelb | Blau | Rot | Orange | Grün | … (deutscher Farbname wie im PDF)",
       "gender": "Herren" oder "Damen",
-      "course_rating": number,   // CR, z. B. 71.2
-      "slope": integer,          // Slope, z. B. 135
-      "par": integer,            // i. d. R. 70–72
-      "length_m": integer        // Gesamtlänge in Metern
+      "course_rating": number,           // CR, z. B. 71.2 (18-Loch) oder 36.1 (9-Loch)
+      "slope": integer,                  // Slope, 55–155
+      "par": integer,                    // 18-Loch i. d. R. 70–72; 9-Loch i. d. R. 30–37
+      "length_m": integer | null         // Gesamtlänge in Metern. NULL wenn nicht im PDF angegeben — viele Spielvorgabentabellen enthalten nur CR/Slope/Par ohne Länge.
     }
   ],
   "architect": "Name oder null",
   "year_designed": integer | null,
   "course_type": "Parkland | Heath | Links | Mountain | Wiesen-Platz | …" | null,
-  "notes": "kurze Bemerkung, falls Daten unsicher oder PDF unklar"
+  "notes": "kurze Bemerkung, falls Daten unsicher, PDF unklar, oder das PDF mehrere Platzkombinationen enthält (dann nimm die Standardkombination Loch 1-18)"
 }
 
-Wichtig:
-- Übersehe keine Tee-Farben — typische Reihen sind Schwarz/Weiß/Gelb/Blau für Herren und Rot/Blau für Damen, aber Variationen sind möglich.
-- Ein Wert pro (color, gender). Falls eine Tee-Farbe für beide Geschlechter bewertet ist, gib zwei Einträge zurück.
-- CR ist eine Dezimalzahl (z. B. 71.2), Slope eine Ganzzahl (55–155).
-- Erfinde keine Werte. Wenn ein Feld fehlt, lass das ganze Objekt weg oder setze das Feld auf null.
-- Wenn das PDF GAR KEINE Course-Rating-Tabelle enthält, gib zurück: {"tees": [], "notes": "kein Course Rating im PDF gefunden"}.
+KRITISCH:
+- GENAU EIN JSON-Objekt. Falls das PDF mehrere Course-Rating-Tabellen für verschiedene Platzkombinationen (z. B. AB, AC, BC) oder verschiedene Schleifen enthält, gib NUR die Daten der Standardkombination (Loch 1-18 wenn vorhanden, sonst erste/häufigste) zurück und vermerke die anderen Kombinationen kurz im "notes"-Feld.
+- Übersehe keine Tee-Farben — typische Reihen: Schwarz/Weiß/Gelb/Blau (Herren), Rot/Blau (Damen). Variationen möglich.
+- Ein Eintrag pro (color, gender)-Kombination.
+- CR ist eine Dezimalzahl (z. B. 71.2 oder 36.1 für 9-Loch).
+- length_m: setze null, wenn keine Gesamtlänge im PDF steht (typisch bei "Spielvorgabentabelle" und "Course Handicap"-Lookup-Tabellen).
+- Erfinde keine Werte.
+- Wenn das PDF GAR KEINE CR/Slope-Tabelle enthält, gib zurück: {"tees": [], "notes": "kein Course Rating im PDF gefunden"}.
 """
 
 USER_INSTRUCTION = "Extrahiere die Platzdaten aus dem PDF und antworte mit dem JSON-Objekt."
 
 
 def is_valid_extraction(data: dict) -> tuple[bool, str]:
-    """Sanity-check the LLM output. Returns (ok, reason_if_not_ok)."""
+    """Sanity-check the LLM output. Returns (ok, reason_if_not_ok).
+
+    Ranges cover both 18-hole and 9-hole tables. length_m is optional —
+    many Spielvorgabentabellen and Course-Handicap lookup PDFs don't include
+    total length, only CR/Slope/Par per tee.
+    """
     tees = data.get("tees")
     if not isinstance(tees, list) or not tees:
         return False, "no tees array"
     for t in tees:
+        # Required numerics: CR, Slope, Par
         try:
             cr = float(t["course_rating"])
             slope = int(t["slope"])
             par = int(t["par"])
-            length = int(t["length_m"])
         except (KeyError, TypeError, ValueError):
-            return False, f"missing/invalid numeric in tee {t}"
-        if not (50 <= cr <= 80):
+            return False, f"missing/invalid CR/Slope/Par in tee {t}"
+        if not (25 <= cr <= 80):           # 9-Loch CR ≈ 30–40, 18-Loch ≈ 65–75
             return False, f"implausible CR {cr}"
         if not (55 <= slope <= 155):
             return False, f"implausible slope {slope}"
-        if not (60 <= par <= 78):
+        if not (28 <= par <= 78):          # 9-Loch par ≈ 30–37, 18-Loch ≈ 60–78
             return False, f"implausible par {par}"
-        if not (3000 <= length <= 8500):
-            return False, f"implausible length {length}m"
         if t.get("gender") not in ("Herren", "Damen"):
             return False, f"unexpected gender {t.get('gender')}"
+
+        # length_m optional. Validate range only when present and numeric.
+        length_raw = t.get("length_m")
+        if length_raw is not None:
+            try:
+                length = int(length_raw)
+            except (TypeError, ValueError):
+                return False, f"invalid length_m {length_raw} in tee {t}"
+            if not (1000 <= length <= 8500):
+                return False, f"implausible length {length}m"
+            t["length_m"] = length  # normalize numeric type
     return True, ""
+
+
+def extract_first_json_object(text: str) -> str:
+    """Pull the first balanced {...} block out of a free-form response.
+
+    Handles the cases that broke us:
+      - markdown ```json fences
+      - multiple JSON objects concatenated (model emitted one per page)
+      - explanatory prose before/after the JSON
+    """
+    text = text.strip()
+    if text.startswith("```"):
+        # Drop opening fence + optional language tag, and any trailing fence.
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+
+    start = text.find("{")
+    if start < 0:
+        return text  # let json.loads error with a useful message
+
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        c = text[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == '"':
+                in_string = False
+            continue
+        if c == '"':
+            in_string = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return text[start:]  # unbalanced — json.loads will surface the issue
 
 
 def extract_from_pdf(client: anthropic.Anthropic, pdf_bytes: bytes) -> dict:
@@ -129,11 +189,7 @@ def extract_from_pdf(client: anthropic.Anthropic, pdf_bytes: bytes) -> dict:
     text = "".join(
         block.text for block in msg.content if getattr(block, "type", None) == "text"
     ).strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[1]
-        if text.endswith("```"):
-            text = text[:-3]
-    return json.loads(text)
+    return json.loads(extract_first_json_object(text))
 
 
 def process_candidate(

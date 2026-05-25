@@ -49,18 +49,21 @@ export default async function CourseDataAdminPage({
       supabase.from('course_data_candidates').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
     ]);
 
-  const { data: rows } = await supabase
+  const { data: rows, error: queryError } = await supabase
     .from('course_data_candidates')
     .select(`
       id, club_id, source_url, asset_url, asset_type, status,
       extracted_data, extraction_notes,
       discovered_at, extracted_at, reviewed_at,
-      club:golf_clubs!course_data_candidates_club_id_fkey ( id, name, city, course_data )
+      club:golf_clubs ( id, name, city, course_data )
     `)
     .eq('status', statusFilter)
     .order('discovered_at', { ascending: false })
     .limit(50);
 
+  if (queryError) {
+    console.error('[course-data] query failed:', queryError);
+  }
   const candidates = (rows ?? []) as unknown as Candidate[];
 
   const filters: { key: string; label: string; count: number | null }[] = [
@@ -103,6 +106,12 @@ export default async function CourseDataAdminPage({
         ))}
       </div>
 
+      {queryError && (
+        <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+          <div className="font-semibold mb-1">Query error</div>
+          <pre className="text-xs whitespace-pre-wrap break-all">{queryError.message}</pre>
+        </div>
+      )}
       <CourseDataReview candidates={candidates} />
     </div>
   );
