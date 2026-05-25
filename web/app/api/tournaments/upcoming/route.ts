@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { todayISO } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 
-const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data';
+const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data,created_at';
 // Supabase PostgREST caps each response at 1000 rows by default.
 // Asking for more via .range() silently returns 1000 anyway, which makes
 // the `data.length < PAGE_SIZE` break condition fire on the first page
@@ -25,6 +25,7 @@ function slim(t: any) {
     gender: t.gender,
     source: t.source,
     description: t.description,
+    created_at: t.created_at,
     raw_data: {
       free_slots: raw.free_slots ?? null,
       max_participants: raw.max_participants ?? null,

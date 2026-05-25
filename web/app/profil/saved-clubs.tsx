@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { GolfClub } from '@/lib/types';
 import { Heart, MapPin, ChevronRight } from 'lucide-react';
+import { EmptyState } from '@/components/empty-state';
 
 interface Props {
   clubs: GolfClub[];
@@ -22,18 +23,11 @@ export default function SavedClubs({ clubs }: Props) {
       </div>
 
       {clubs.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-          <Heart size={32} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-sm text-gray-400">
-            Noch keine Favoriten-Clubs gespeichert.
-          </p>
-          <Link
-            href="/clubs"
-            className="inline-block mt-3 text-sm text-accent hover:underline font-medium"
-          >
-            Clubs entdecken →
-          </Link>
-        </div>
+        <EmptyState
+          icon={Heart}
+          title="Noch keine Favoriten-Clubs gespeichert"
+          action={{ label: 'Clubs entdecken', href: '/clubs' }}
+        />
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {clubs.map((club) => (

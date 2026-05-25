@@ -15,6 +15,40 @@ export interface ScoredTournament extends Tournament {
   score: number;
 }
 
+export interface RecommendationReasons {
+  hcpMatch: boolean;
+  favoriteClub: 'home' | 'favorite' | null;
+  formatMatch: boolean;
+}
+
+/**
+ * Mirror the signals that drive scoreTournaments(), so the UI can label *why*
+ * a tournament is recommended. Pure derivation — no extra fetches.
+ */
+export function tournamentReasons(
+  t: Tournament,
+  profile: ScoringProfile,
+  savedClubIds: Set<string>,
+): RecommendationReasons {
+  const raw = t.raw_data || {};
+  const hcpMatch = !!(profile.recommendation_prefer_hcp && raw.hcp_relevant);
+
+  let favoriteClub: 'home' | 'favorite' | null = null;
+  if (t.club_id) {
+    if (t.club_id === profile.home_club_id) favoriteClub = 'home';
+    else if (savedClubIds.has(t.club_id)) favoriteClub = 'favorite';
+  }
+
+  const formatMatch = !!(
+    profile.recommendation_formats &&
+    profile.recommendation_formats.length > 0 &&
+    t.format &&
+    profile.recommendation_formats.includes(t.format)
+  );
+
+  return { hcpMatch, favoriteClub, formatMatch };
+}
+
 export function scoreTournaments(
   tournaments: Tournament[],
   profile: ScoringProfile,

@@ -4,7 +4,8 @@ import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
-import { MapPin, ChevronRight, Locate } from 'lucide-react';
+import { MapPin, ChevronRight, Locate, Building2 } from 'lucide-react';
+import { EmptyState } from '@/components/empty-state';
 import SaveClubButton from '@/components/save-club-button';
 import ClubFiltersPanel, { ClubFilters, DEFAULT_CLUB_FILTERS } from '@/components/club-filters';
 
@@ -153,10 +154,11 @@ export default function ClubsClient({ clubs, savedClubIds }: Props) {
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Keine Clubs gefunden</h3>
-          <p>Versuche einen anderen Suchbegriff oder eine andere Region.</p>
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="Keine Clubs gefunden"
+          description="Versuche einen anderen Suchbegriff oder eine andere Region."
+        />
       )}
     </>
   );

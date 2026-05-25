@@ -4,8 +4,9 @@ import { Sparkles, MapPin, Target, Heart, Bookmark, Calendar, History, Home, Sli
 import { createClient } from '@/lib/supabase/server';
 import { GolfClub, Profile, Tournament } from '@/lib/types';
 import { todayISO, formatDateFull, formatToLabel } from '@/lib/utils';
-import { scoreTournaments, type ScoredTournament } from '@/lib/recommendations';
+import { scoreTournaments, tournamentReasons, type ScoredTournament, type ScoringProfile } from '@/lib/recommendations';
 import { ExpandableList } from './expandable-list';
+import { EmptyState } from '@/components/empty-state';
 
 export const metadata = {
   title: 'Für dich – The Pin',
@@ -186,7 +187,7 @@ export default async function FuerDichPage() {
               <SectionHeader icon={Sparkles} title="Neu diese Woche" count={newThisWeek.length} />
               <ExpandableList initialCount={3} expandedCount={5} viewMoreHref="/turniere">
                 {newThisWeek.map((t) => (
-                  <RecommendationRow key={t.id} t={t} clubs={clubs} />
+                  <RecommendationRow key={t.id} t={t} clubs={clubs} scoringProfile={scoringProfile} savedClubIds={savedClubIds} />
                 ))}
               </ExpandableList>
             </section>
@@ -196,7 +197,7 @@ export default async function FuerDichPage() {
               <SectionHeader icon={Bookmark} title="Gespeichert" count={savedUpcoming.length} />
               <div className="space-y-2">
                 {savedUpcoming.slice(0, 6).map((t) => (
-                  <RecommendationRow key={t.id} t={t} clubs={clubs} saved />
+                  <RecommendationRow key={t.id} t={t} clubs={clubs} saved scoringProfile={scoringProfile} savedClubIds={savedClubIds} />
                 ))}
               </div>
             </section>
@@ -303,19 +304,12 @@ export default async function FuerDichPage() {
       )}
 
       {!hasAnyContent && (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-          <MapPin size={32} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500 mb-3">Noch keine Empfehlungen.</p>
-          <p className="text-xs text-gray-400 mb-4">
-            Setze deinen Heimatclub und dein Handicap in den Einstellungen, damit wir dir passende Turniere zeigen können.
-          </p>
-          <Link
-            href="/profil/einstellungen"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-          >
-            Profil einrichten →
-          </Link>
-        </div>
+        <EmptyState
+          icon={MapPin}
+          title="Noch keine Empfehlungen"
+          description="Setze deinen Heimatclub und dein Handicap in den Einstellungen, damit wir dir passende Turniere zeigen können."
+          action={{ label: 'Profil einrichten', href: '/profil/einstellungen' }}
+        />
       )}
 
       <div className="mt-8 flex gap-3 justify-center text-sm text-gray-500">
@@ -431,16 +425,25 @@ function RecommendationRow({
   clubs,
   saved = false,
   past = false,
+  scoringProfile,
+  savedClubIds,
 }: {
   t: ScoredTournament | Tournament;
   clubs: Record<string, GolfClub>;
   saved?: boolean;
   past?: boolean;
+  scoringProfile?: ScoringProfile;
+  savedClubIds?: Set<string>;
 }) {
   const club = clubs[t.club_id || ''];
   const formatLabel = formatToLabel(t.format);
   const dist = 'distance' in t ? t.distance : undefined;
   const date = new Date(t.date_start + 'T00:00:00');
+
+  const reasons =
+    scoringProfile && savedClubIds && !past
+      ? tournamentReasons(t, scoringProfile, savedClubIds)
+      : null;
 
   return (
     <Link
@@ -468,15 +471,35 @@ function RecommendationRow({
           {club?.name}
           {club?.city ? ` · ${club.city}` : ''}
         </div>
-        <div className="flex items-center gap-1.5 mt-1">
-          {formatLabel && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-accent-light text-accent rounded font-medium">
-              {formatLabel}
-            </span>
-          )}
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {dist != null && dist < 9999 && (
             <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
               {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(0)} km`}
+            </span>
+          )}
+          {reasons?.favoriteClub === 'home' && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-accent-light text-accent rounded font-medium">
+              Heimatclub
+            </span>
+          )}
+          {reasons?.favoriteClub === 'favorite' && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-pink-50 text-pink-600 rounded font-medium">
+              Lieblingsclub
+            </span>
+          )}
+          {reasons?.hcpMatch && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded font-medium dark:bg-[#152a1a] dark:text-[#4ead6e]">
+              passt zu HCP
+            </span>
+          )}
+          {reasons?.formatMatch && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded font-medium dark:bg-[#2a2410] dark:text-[#e8c84a]">
+              dein Format
+            </span>
+          )}
+          {formatLabel && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
+              {formatLabel}
             </span>
           )}
           {saved && !past && (

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { todayISO, toISO } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 
-const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data';
+const COLUMNS = 'id,name,club_id,date_start,date_end,format,entry_fee,age_class,gender,source,description,raw_data,created_at';
 const PAGE_SIZE = 1000;
 const PAST_WINDOW_DAYS = 6;
 
@@ -22,6 +22,7 @@ function slim(t: any) {
     gender: t.gender,
     source: t.source,
     description: t.description,
+    created_at: t.created_at,
     raw_data: {
       free_slots: raw.free_slots ?? null,
       max_participants: raw.max_participants ?? null,

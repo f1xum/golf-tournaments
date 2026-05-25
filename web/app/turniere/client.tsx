@@ -2,15 +2,17 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { extractHoles } from '@/lib/tournament-utils';
+import { ScoringProfile } from '@/lib/recommendations';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import { FORMAT_FILTER_SYNONYMS } from '@/lib/constants';
 import WeekCalendar from '@/components/week-calendar';
 import TournamentList from '@/components/tournament-list';
+import PullToRefresh from '@/components/pull-to-refresh';
 import { ChevronDown, Clock, Lock, Search, X } from 'lucide-react';
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
   homeClubCoords: [number, number] | null;
   savedClubIds: string[];
   savedTournamentIds: string[];
+  scoringProfile: ScoringProfile | null;
   userId: string | null;
   isLoggedIn: boolean;
 }
@@ -116,10 +119,19 @@ function LoadingSkeleton() {
 
 const STATE_STORAGE_KEY = 'thepin-turniere-state';
 
-export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, userId, isLoggedIn }: Props) {
+export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, scoringProfile, userId, isLoggedIn }: Props) {
   const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
+  const savedClubIdSet = useMemo(() => new Set(savedClubIds), [savedClubIds]);
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
+  const queryClient = useQueryClient();
+
+  const refreshTournaments = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['tournaments', 'upcoming'] }),
+      queryClient.invalidateQueries({ queryKey: ['tournaments', 'past'] }),
+    ]);
+  };
 
   const [view, setView] = useState<'calendar' | 'list'>(isLoggedIn ? 'calendar' : 'list');
   const [search, setSearch] = useState('');
@@ -231,7 +243,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
   const activeClub = filters.club ? clubs[filters.club] : null;
 
   return (
-    <>
+    <PullToRefresh onRefresh={refreshTournaments}>
       {/* Club filter banner */}
       {activeClub && (
         <div className="flex items-center justify-between bg-accent-light border border-accent/20 rounded-lg px-4 py-2.5 mb-4">
@@ -353,7 +365,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
       ) : view === 'calendar' ? (
         <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
-        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
+        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} scoringProfile={scoringProfile} savedClubIds={savedClubIdSet} />
       )}
 
       {/* Past tournaments toggle */}
@@ -395,6 +407,6 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
           </div>
         )}
       </div>
-    </>
+    </PullToRefresh>
   );
 }

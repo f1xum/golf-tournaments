@@ -52,6 +52,8 @@ export interface Tournament {
   source: string;
   source_url: string | null;
   raw_data: RawData | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Profile {

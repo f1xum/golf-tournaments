@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { formatDateFull, formatToLabel } from '@/lib/utils';
-import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
+import { extractHoles, formatMeldeschluss, parseMeldeschluss } from '@/lib/tournament-utils';
 import SaveTournamentButton from '@/components/save-tournament-button';
 
 interface Props {
@@ -22,6 +22,22 @@ export default function TournamentCard({ tournament: t, club, userId, initialSav
 
   const holes = extractHoles(t.raw_data, t.description);
   const meldeschluss = formatMeldeschluss(t.raw_data);
+  const meldeschlussDate = parseMeldeschluss(t.raw_data);
+
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
+  const isNew = t.created_at
+    ? nowMs - new Date(t.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
+    : false;
+
+  // Days until registration closes; only consider it "closing soon" if positive and ≤7.
+  const daysUntilClose = meldeschlussDate
+    ? Math.ceil((meldeschlussDate.getTime() - nowMs) / (24 * 60 * 60 * 1000))
+    : null;
+  const closingSoon = daysUntilClose !== null && daysUntilClose >= 0 && daysUntilClose <= 7;
+
+  const slotsLow =
+    typeof raw.free_slots === 'number' && raw.free_slots > 0 && raw.free_slots <= 10;
 
   const slotsText =
     raw.max_participants
@@ -49,6 +65,11 @@ export default function TournamentCard({ tournament: t, club, userId, initialSav
           {dateStr}{endStr}
         </span>
         <div className="flex gap-1.5 ml-2 flex-shrink-0">
+          {isNew && (
+            <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium">
+              Neu
+            </span>
+          )}
           {formatLabel && (
             <span className="text-xs px-2 py-0.5 bg-accent-light text-accent rounded font-medium">
               {formatLabel}
@@ -90,8 +111,28 @@ export default function TournamentCard({ tournament: t, club, userId, initialSav
         )}
       </div>
 
+      {/* Urgency chips */}
+      {(slotsLow || closingSoon) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {slotsLow && (
+            <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-medium dark:bg-[#2a2410] dark:border-[#5a4a18] dark:text-[#e8c84a]">
+              Nur noch {raw.free_slots} {raw.free_slots === 1 ? 'Platz' : 'Plätze'}
+            </span>
+          )}
+          {closingSoon && (
+            <span className="text-xs px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded font-medium dark:bg-[#2a1515] dark:border-[#5a2020] dark:text-[#f87171]">
+              {daysUntilClose === 0
+                ? 'Schließt heute'
+                : daysUntilClose === 1
+                  ? 'Schließt morgen'
+                  : `Schließt in ${daysUntilClose} Tagen`}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Meldeschluss */}
-      {meldeschluss && (
+      {meldeschluss && !closingSoon && (
         <div className="mt-2 text-xs text-gray-400">
           Meldeschluss: {meldeschluss}
         </div>

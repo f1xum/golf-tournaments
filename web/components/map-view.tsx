@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { GolfClub } from '@/lib/types';
@@ -51,6 +52,29 @@ const favoriteIcon = L.divIcon({
   iconAnchor: [7, 7],
   popupAnchor: [0, -9],
 });
+
+function clusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 32 : count < 50 ? 38 : 44;
+  return L.divIcon({
+    html: `<div style="
+      width: ${size}px; height: ${size}px;
+      background: rgba(45, 106, 79, 0.85);
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    ">${count}</div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
 
 const userIcon = L.divIcon({
   className: '',
@@ -135,39 +159,47 @@ export default function MapView({ clubs, tournamentCounts, savedClubIds = [] }: 
           </>
         )}
 
-        {/* Club markers */}
-        {clubs.map((club) => {
-          if (!club.latitude || !club.longitude) return null;
-          const count = tournamentCounts[club.id] || 0;
-          const isFavorite = savedClubIds.includes(club.id);
-          const dist = userPos
-            ? distanceKm(userPos[0], userPos[1], club.latitude, club.longitude)
-            : null;
-          return (
-            <Marker
-              key={club.id}
-              position={[club.latitude, club.longitude]}
-              icon={isFavorite ? favoriteIcon : accentIcon}
-            >
-              <Popup>
-                <a href={`/clubs/${club.id}`} className="block text-sm no-underline text-inherit">
-                  <div className="font-semibold">{club.name}</div>
-                  {club.city && <div className="text-gray-500">{club.city}</div>}
-                  {dist != null && (
-                    <div className="text-xs text-blue-500 mt-0.5">
-                      {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`} entfernt
+        {/* Club markers — clustered to keep ~800 pins from choking mobile */}
+        <MarkerClusterGroup
+          chunkedLoading
+          showCoverageOnHover={false}
+          spiderfyOnMaxZoom
+          maxClusterRadius={50}
+          iconCreateFunction={clusterIcon}
+        >
+          {clubs.map((club) => {
+            if (!club.latitude || !club.longitude) return null;
+            const count = tournamentCounts[club.id] || 0;
+            const isFavorite = savedClubIds.includes(club.id);
+            const dist = userPos
+              ? distanceKm(userPos[0], userPos[1], club.latitude, club.longitude)
+              : null;
+            return (
+              <Marker
+                key={club.id}
+                position={[club.latitude, club.longitude]}
+                icon={isFavorite ? favoriteIcon : accentIcon}
+              >
+                <Popup>
+                  <a href={`/clubs/${club.id}`} className="block text-sm no-underline text-inherit">
+                    <div className="font-semibold">{club.name}</div>
+                    {club.city && <div className="text-gray-500">{club.city}</div>}
+                    {dist != null && (
+                      <div className="text-xs text-blue-500 mt-0.5">
+                        {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`} entfernt
+                      </div>
+                    )}
+                    <div className="mt-1 text-accent font-medium">
+                      {count > 0
+                        ? `${count} kommende Turnier${count !== 1 ? 'e' : ''} →`
+                        : 'Club ansehen →'}
                     </div>
-                  )}
-                  <div className="mt-1 text-accent font-medium">
-                    {count > 0
-                      ? `${count} kommende Turnier${count !== 1 ? 'e' : ''} →`
-                      : 'Club ansehen →'}
-                  </div>
-                </a>
-              </Popup>
-            </Marker>
-          );
-        })}
+                  </a>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MarkerClusterGroup>
       </MapContainer>
 
       {/* Locate button */}
