@@ -4,9 +4,15 @@ import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import * as CookieConsent from 'vanilla-cookieconsent';
 import 'vanilla-cookieconsent/dist/cookieconsent.css';
+import { shouldTrack } from '@/lib/tracking-opt-out';
 
 export default function CookieConsentManager() {
   const [analyticsAllowed, setAnalyticsAllowed] = useState(false);
+  const [trackingOk, setTrackingOk] = useState(false);
+
+  useEffect(() => {
+    shouldTrack().then(setTrackingOk);
+  }, []);
 
   useEffect(() => {
     CookieConsent.run({
@@ -96,7 +102,7 @@ export default function CookieConsentManager() {
     });
   }, []);
 
-  if (!analyticsAllowed) return null;
+  if (!analyticsAllowed || !trackingOk) return null;
 
   return (
     <Script
