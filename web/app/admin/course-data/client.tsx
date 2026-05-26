@@ -58,19 +58,30 @@ function CandidateRow({
 
   async function approve() {
     setError(null);
-    let parsed: unknown;
+    let parsed: Record<string, unknown>;
     try {
-      parsed = JSON.parse(draft);
+      const p = JSON.parse(draft);
+      if (p === null || typeof p !== 'object' || Array.isArray(p)) {
+        setError('JSON must be an object');
+        return;
+      }
+      parsed = p as Record<string, unknown>;
     } catch (e) {
       setError(`JSON invalid: ${(e as Error).message}`);
       return;
     }
     onStart();
     const supabase = createClient();
-    // 1. Write the data to golf_clubs
+    // Merge with existing course_data so manually-seeded fields (photos,
+    // holes, description, etc.) survive when promoting a thinner
+    // auto-extracted candidate. The candidate's fields win for any keys it
+    // provides; existing keys are preserved otherwise.
+    const existing =
+      (candidate.club?.course_data as Record<string, unknown> | null) ?? {};
+    const merged = { ...existing, ...parsed };
     const { error: clubErr } = await supabase
       .from('golf_clubs')
-      .update({ course_data: parsed })
+      .update({ course_data: merged })
       .eq('id', candidate.club_id);
     if (clubErr) {
       setError(`promote failed: ${clubErr.message}`);
