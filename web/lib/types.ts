@@ -4,7 +4,7 @@ export interface CourseTee {
   course_rating: number;
   slope: number;
   par: number;
-  length_m: number;
+  length_m: number | null;
 }
 
 export interface CourseHole {
