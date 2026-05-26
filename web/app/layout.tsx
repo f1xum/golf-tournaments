@@ -5,7 +5,7 @@ import RouteProgress from '@/components/route-progress';
 import ProfileCompletionBanner from '@/components/profile-completion-banner';
 import QueryProvider from '@/components/query-provider';
 import './globals.css';
-import { Analytics } from "@vercel/analytics/next"
+import ConditionalVercelAnalytics from '@/components/conditional-vercel-analytics';
 import PageTracker from '@/components/page-tracker';
 import CookieConsentManager from '@/components/cookie-consent';
 import SiteFooter from '@/components/site-footer';
@@ -80,7 +80,7 @@ export default function RootLayout({
           <SiteFooter />
           <BottomNav />
           <InstallPrompt />
-          <Analytics />
+          <ConditionalVercelAnalytics />
           <PageTracker />
         </QueryProvider>
         <CookieConsentManager />
