@@ -114,7 +114,9 @@ export default function CourseDetails({ data }: Props) {
                       {tee.par}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">
-                      {tee.length_m.toLocaleString('de-DE')} m
+                      {tee.length_m != null
+                        ? `${tee.length_m.toLocaleString('de-DE')} m`
+                        : <span className="text-gray-300">—</span>}
                     </td>
                   </tr>
                 ))}
