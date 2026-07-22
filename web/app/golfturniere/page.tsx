@@ -4,6 +4,7 @@ import { MapPin, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { todayISO } from '@/lib/utils';
 import { BUNDESLAENDER } from '@/lib/regions';
+import { CITIES } from '@/lib/cities';
 import { loadClubsByBundesland, loadUpcomingCountsByBundesland } from '@/lib/geo-data';
 
 export const revalidate = 3600;
@@ -80,6 +81,25 @@ export default async function GolfturniereIndexPage() {
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-accent transition-colors" />
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Popular cities — metro pages */}
+      <section className="mt-10">
+        <h2 className="text-lg font-bold mb-1">Golfturniere nach Stadt</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Turniere und Golfclubs im Umkreis der größten Städte Deutschlands.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {CITIES.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/golfturniere/stadt/${c.slug}`}
+              className="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-full hover:border-accent/40 hover:text-accent transition-colors"
+            >
+              Golfturniere {c.name}
             </Link>
           ))}
         </div>

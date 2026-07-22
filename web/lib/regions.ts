@@ -9,16 +9,21 @@
 export interface Bundesland {
   slug: string;
   name: string;
-  /** Genitive/locative-friendly display already handled via "in {name}". */
+  /**
+   * City-states (Berlin, Hamburg, Bremen) are tiny administratively but the search
+   * intent is metro-wide. When set, the hub page selects clubs by radius around this
+   * centre instead of by region tag — capturing far more clubs.
+   */
+  center?: { lat: number; lng: number; radiusKm: number };
 }
 
 export const BUNDESLAENDER: Bundesland[] = [
   { slug: 'baden-wuerttemberg', name: 'Baden-Württemberg' },
   { slug: 'bayern', name: 'Bayern' },
-  { slug: 'berlin', name: 'Berlin' },
+  { slug: 'berlin', name: 'Berlin', center: { lat: 52.52, lng: 13.405, radiusKm: 40 } },
   { slug: 'brandenburg', name: 'Brandenburg' },
-  { slug: 'bremen', name: 'Bremen' },
-  { slug: 'hamburg', name: 'Hamburg' },
+  { slug: 'bremen', name: 'Bremen', center: { lat: 53.0793, lng: 8.8017, radiusKm: 35 } },
+  { slug: 'hamburg', name: 'Hamburg', center: { lat: 53.5511, lng: 9.9937, radiusKm: 35 } },
   { slug: 'hessen', name: 'Hessen' },
   { slug: 'mecklenburg-vorpommern', name: 'Mecklenburg-Vorpommern' },
   { slug: 'niedersachsen', name: 'Niedersachsen' },
