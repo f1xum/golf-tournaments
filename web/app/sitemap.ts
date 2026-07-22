@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { BUNDESLAENDER } from '@/lib/regions';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
@@ -28,9 +29,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
     { url: `${baseUrl}/turniere`, lastModified: new Date(), changeFrequency: 'hourly', priority: 0.9 },
+    { url: `${baseUrl}/golfturniere`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/clubs`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
     { url: `${baseUrl}/karte`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.6 },
   ];
+
+  // Geo hub pages — one evergreen page per Bundesland
+  const bundeslandPages: MetadataRoute.Sitemap = BUNDESLAENDER.map((b) => ({
+    url: `${baseUrl}/golfturniere/${b.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.8,
+  }));
 
   // Tournament pages
   const tournamentPages: MetadataRoute.Sitemap = tournaments.map((t) => ({
@@ -48,5 +58,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...tournamentPages, ...clubPages];
+  return [...staticPages, ...bundeslandPages, ...tournamentPages, ...clubPages];
 }

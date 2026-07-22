@@ -6,6 +6,11 @@ import * as CookieConsent from 'vanilla-cookieconsent';
 export default function SiteFooter() {
   return (
     <footer className="mt-12 pb-24 sm:pb-8 px-4 text-center text-xs text-gray-400">
+      <div className="flex items-center justify-center gap-3 flex-wrap mb-3">
+        <Link href="/golfturniere" className="hover:text-gray-600 transition-colors">
+          Golfturniere nach Bundesland
+        </Link>
+      </div>
       <div className="flex items-center justify-center gap-3 flex-wrap">
         <Link href="/datenschutz" className="hover:text-gray-600 transition-colors">
           Datenschutz

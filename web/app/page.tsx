@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, Building2, Map, Sparkles, UserPlus, MapPin, Target, Heart, SlidersHorizontal, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { todayISO } from '@/lib/utils';
+import { BUNDESLAENDER } from '@/lib/regions';
 
 export const revalidate = 3600;
 
@@ -176,6 +177,30 @@ export default async function HomePage() {
           </div>
         </Link>
       </div>
+
+      {/* Golfturniere nach Bundesland — SEO geo hub links */}
+      <section className="mt-8">
+        <h2 className="text-lg font-bold mb-1">Golfturniere nach Bundesland</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Finde Golfturniere in deiner Region – von Bayern bis Schleswig-Holstein.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {BUNDESLAENDER.map((b) => (
+            <Link
+              key={b.slug}
+              href={`/golfturniere/${b.slug}`}
+              className="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-full hover:border-accent/40 hover:text-accent transition-colors"
+            >
+              {b.name}
+            </Link>
+          ))}
+        </div>
+        <div className="mt-3">
+          <Link href="/golfturniere" className="text-accent text-sm font-medium inline-flex items-center gap-1 hover:underline">
+            Alle Bundesländer im Überblick <ArrowRight size={14} />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
