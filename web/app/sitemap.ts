@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { BUNDESLAENDER } from '@/lib/regions';
+import { CITIES } from '@/lib/cities';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
@@ -42,6 +43,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Metro/city hub pages
+  const cityPages: MetadataRoute.Sitemap = CITIES.map((c) => ({
+    url: `${baseUrl}/golfturniere/stadt/${c.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.8,
+  }));
+
   // Tournament pages
   const tournamentPages: MetadataRoute.Sitemap = tournaments.map((t) => ({
     url: `${baseUrl}/turniere/${t.id}`,
@@ -58,5 +67,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...bundeslandPages, ...tournamentPages, ...clubPages];
+  return [...staticPages, ...bundeslandPages, ...cityPages, ...tournamentPages, ...clubPages];
 }

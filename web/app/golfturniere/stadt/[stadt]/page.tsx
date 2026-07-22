@@ -1,18 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { MapPin, Building2, CalendarDays, ArrowRight, Landmark } from 'lucide-react';
+import { MapPin, Building2, CalendarDays, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
-import { BUNDESLAENDER, bundeslandBySlug } from '@/lib/regions';
-import { citiesInBundesland } from '@/lib/cities';
-import {
-  loadAllClubs,
-  groupClubsByBundesland,
-  clubsNearPoint,
-  loadUpcomingTournaments,
-} from '@/lib/geo-data';
+import { CITIES, cityBySlug } from '@/lib/cities';
+import { bundeslandBySlug } from '@/lib/regions';
+import { loadAllClubs, clubsNearPoint, loadUpcomingTournaments } from '@/lib/geo-data';
 import TournamentCard from '@/components/tournament-card';
 
 export const revalidate = 3600;
@@ -20,25 +15,22 @@ export const revalidate = 3600;
 const YEAR = new Date().getFullYear();
 
 interface PageProps {
-  params: Promise<{ bundesland: string }>;
+  params: Promise<{ stadt: string }>;
 }
 
 export function generateStaticParams() {
-  return BUNDESLAENDER.map((b) => ({ bundesland: b.slug }));
+  return CITIES.map((c) => ({ stadt: c.slug }));
 }
 
 async function getData(slug: string) {
-  const bl = bundeslandBySlug(slug);
-  if (!bl) return null;
+  const city = cityBySlug(slug);
+  if (!city) return null;
 
   const supabase = await createClient();
   const today = todayISO();
 
   const allClubs = await loadAllClubs(supabase);
-  // City-states → radius selection; everyone else → region grouping.
-  const clubs = bl.center
-    ? clubsNearPoint(allClubs, bl.center.lat, bl.center.lng, bl.center.radiusKm)
-    : groupClubsByBundesland(allClubs).get(slug) ?? [];
+  const clubs = clubsNearPoint(allClubs, city.lat, city.lng, city.radiusKm);
 
   const tournaments = (await loadUpcomingTournaments(
     supabase,
@@ -46,17 +38,17 @@ async function getData(slug: string) {
     today,
   )) as Tournament[];
 
-  return { bl, clubs, tournaments };
+  return { city, clubs, tournaments };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { bundesland } = await params;
-  const bl = bundeslandBySlug(bundesland);
-  if (!bl) return { title: 'Nicht gefunden' };
+  const { stadt } = await params;
+  const city = cityBySlug(stadt);
+  if (!city) return { title: 'Nicht gefunden' };
 
-  const title = `Golfturniere in ${bl.name} ${YEAR} – Termine & Golfclubs`;
-  const description = `Alle kommenden Golfturniere in ${bl.name} auf einen Blick: Termine, Nenngeld, HCP und Anmeldung. Finde dein nächstes Turnier bei Golfclubs in ${bl.name} – kostenlos auf The Pin.`;
-  const url = `https://thepin.app/golfturniere/${bl.slug}`;
+  const title = `Golfturniere in ${city.name} ${YEAR} – Termine & Golfclubs`;
+  const description = `Alle kommenden Golfturniere in ${city.name} und Umgebung: Termine, Nenngeld, HCP und Anmeldung. Golfclubs im Umkreis von ${city.radiusKm} km rund um ${city.name} – kostenlos auf The Pin.`;
+  const url = `https://thepin.app/golfturniere/stadt/${city.slug}`;
 
   return {
     title,
@@ -67,16 +59,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function BundeslandPage({ params }: PageProps) {
-  const { bundesland } = await params;
-  const data = await getData(bundesland);
+export default async function StadtPage({ params }: PageProps) {
+  const { stadt } = await params;
+  const data = await getData(stadt);
   if (!data) notFound();
 
-  const { bl, clubs, tournaments } = data;
+  const { city, clubs, tournaments } = data;
   const clubById = new Map(clubs.map((c) => [c.id, c]));
-  const cities = citiesInBundesland(bl.slug);
-
-  const otherBl = BUNDESLAENDER.filter((b) => b.slug !== bl.slug);
+  const bl = bundeslandBySlug(city.bundesland);
+  const otherCities = CITIES.filter((c) => c.slug !== city.slug);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -86,12 +77,13 @@ export default async function BundeslandPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://thepin.app' },
           { '@type': 'ListItem', position: 2, name: 'Golfturniere', item: 'https://thepin.app/golfturniere' },
-          { '@type': 'ListItem', position: 3, name: bl.name, item: `https://thepin.app/golfturniere/${bl.slug}` },
+          ...(bl ? [{ '@type': 'ListItem', position: 3, name: bl.name, item: `https://thepin.app/golfturniere/${bl.slug}` }] : []),
+          { '@type': 'ListItem', position: bl ? 4 : 3, name: city.name, item: `https://thepin.app/golfturniere/stadt/${city.slug}` },
         ],
       },
       {
         '@type': 'ItemList',
-        name: `Golfturniere in ${bl.name}`,
+        name: `Golfturniere in ${city.name}`,
         numberOfItems: tournaments.length,
         itemListElement: tournaments.slice(0, 25).map((t, i) => ({
           '@type': 'ListItem',
@@ -111,7 +103,6 @@ export default async function BundeslandPage({ params }: PageProps) {
                 address: {
                   '@type': 'PostalAddress',
                   addressLocality: clubById.get(t.club_id || '')!.city || undefined,
-                  addressRegion: bl.name,
                   addressCountry: 'DE',
                 },
               },
@@ -131,57 +122,43 @@ export default async function BundeslandPage({ params }: PageProps) {
         <Link href="/" className="hover:text-gray-600">Start</Link>
         <span aria-hidden="true">/</span>
         <Link href="/golfturniere" className="hover:text-gray-600">Golfturniere</Link>
+        {bl && (
+          <>
+            <span aria-hidden="true">/</span>
+            <Link href={`/golfturniere/${bl.slug}`} className="hover:text-gray-600">{bl.name}</Link>
+          </>
+        )}
         <span aria-hidden="true">/</span>
-        <span className="text-gray-600">{bl.name}</span>
+        <span className="text-gray-600">{city.name}</span>
       </nav>
 
       {/* Hero */}
       <header className="mb-6">
-        <h1 className="text-2xl font-bold leading-tight">Golfturniere in {bl.name}</h1>
+        <h1 className="text-2xl font-bold leading-tight">Golfturniere in {city.name}</h1>
         <p className="text-gray-600 mt-2 leading-relaxed">
           {tournaments.length > 0 ? (
             <>
               <strong>{tournaments.length}</strong> kommende Golfturniere bei{' '}
-              <strong>{clubs.length}</strong> Golfclubs in {bl.name} – mit Terminen, Nenngeld,
-              HCP-Grenzen und direkter Anmeldung. Neu, HCP-relevant oder mit freien Plätzen:
-              filtere und speichere deine Turniere kostenlos auf The Pin.
+              <strong>{clubs.length}</strong> Golfclubs im Umkreis von {city.radiusKm} km rund um{' '}
+              {city.name} – mit Terminen, Nenngeld, HCP-Grenzen und direkter Anmeldung. Filtere und
+              speichere deine Turniere kostenlos auf The Pin.
             </>
           ) : (
             <>
-              Aktuell sind keine kommenden Golfturniere für {bl.name} gelistet. Entdecke die{' '}
-              <strong>{clubs.length}</strong> Golfclubs in {bl.name} oder schau bald wieder vorbei –
+              Aktuell sind keine kommenden Golfturniere rund um {city.name} gelistet. Entdecke die{' '}
+              <strong>{clubs.length}</strong> Golfclubs im Umkreis oder schau bald wieder vorbei –
               wir aktualisieren die Turniere täglich.
             </>
           )}
         </p>
       </header>
 
-      {/* Cities in this Bundesland — internal links to metro pages */}
-      {cities.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
-            <Landmark className="w-4 h-4" /> Golfturniere nach Stadt
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {cities.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/golfturniere/stadt/${c.slug}`}
-                className="text-sm px-3 py-1.5 bg-accent-light text-accent rounded-full hover:opacity-80 transition-opacity"
-              >
-                Golfturniere {c.name}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Tournament list */}
       {tournaments.length > 0 && (
         <section className="mb-10">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-accent" />
-            Kommende Turniere in {bl.name}
+            Kommende Turniere rund um {city.name}
           </h2>
           <div className="space-y-3">
             {tournaments.map((t) => (
@@ -207,7 +184,7 @@ export default async function BundeslandPage({ params }: PageProps) {
         <section className="mb-10">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-accent" />
-            Golfclubs in {bl.name}
+            Golfclubs rund um {city.name}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {clubs.map((c) => (
@@ -225,17 +202,25 @@ export default async function BundeslandPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Other Bundesländer */}
+      {/* Other cities + Bundesland link */}
       <section className="border-t border-gray-100 pt-6">
-        <h2 className="text-sm font-semibold text-gray-500 mb-3">Golfturniere in anderen Bundesländern</h2>
+        <h2 className="text-sm font-semibold text-gray-500 mb-3">Golfturniere in anderen Städten</h2>
         <div className="flex flex-wrap gap-2">
-          {otherBl.map((b) => (
+          {bl && (
             <Link
-              key={b.slug}
-              href={`/golfturniere/${b.slug}`}
+              href={`/golfturniere/${bl.slug}`}
+              className="text-sm px-3 py-1.5 bg-accent-light text-accent rounded-full hover:opacity-80 transition-opacity"
+            >
+              Ganz {bl.name}
+            </Link>
+          )}
+          {otherCities.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/golfturniere/stadt/${c.slug}`}
               className="text-sm px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full hover:border-accent/40 hover:text-accent transition-colors"
             >
-              {b.name}
+              {c.name}
             </Link>
           ))}
         </div>
