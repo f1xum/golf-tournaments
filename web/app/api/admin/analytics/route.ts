@@ -1,14 +1,15 @@
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
+  const session = await createClient();
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await session.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const { data: profile } = await session
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -17,6 +18,10 @@ export async function GET(request: NextRequest) {
   if (profile?.role !== 'admin') {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
+
+  // page_views is RLS-locked to the service role; the admin check above is the
+  // only gate on this data.
+  const supabase = createServiceClient();
 
   const range = request.nextUrl.searchParams.get('range') || '7d';
   const daysBack = range === '30d' ? 30 : range === '90d' ? 90 : 7;

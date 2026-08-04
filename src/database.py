@@ -7,14 +7,14 @@ from src.config import settings
 from src.models.scrape_log import ScrapeLog, ScrapeStatus
 
 
-def get_supabase_client(*, prefer_service_role: bool = False) -> Client:
+def get_supabase_client(*, prefer_service_role: bool = True) -> Client:
     """Build a Supabase client.
 
-    When `prefer_service_role=True` and SUPABASE_SERVICE_KEY is set, returns
-    a client that bypasses RLS. Backend scripts that write to RLS-protected
-    tables (e.g. `course_data_candidates`) should request the service-role
-    client. Falls back to the anon key when the service key isn't available
-    so existing scrapers keep working unchanged.
+    Backend code writes to tables that are RLS-protected against the anon key
+    (golf_clubs, tournaments, scrape_logs, course_data_candidates), so it uses
+    the service-role client, which bypasses RLS. Falls back to the anon key
+    when SUPABASE_SERVICE_KEY isn't set — that only buys read access now, so
+    every deployment that writes must set the service key.
     """
     if prefer_service_role and settings.supabase_service_key:
         return create_client(settings.supabase_url, settings.supabase_service_key)
@@ -22,7 +22,7 @@ def get_supabase_client(*, prefer_service_role: bool = False) -> Client:
 
 
 class Database:
-    def __init__(self, client: Client | None = None, *, service_role: bool = False):
+    def __init__(self, client: Client | None = None, *, service_role: bool = True):
         self.client = client or get_supabase_client(prefer_service_role=service_role)
 
     # ── Clubs ──────────────────────────────────────────
