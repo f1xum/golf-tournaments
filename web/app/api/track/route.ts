@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const supabase = await createClient();
+    // page_views is RLS-locked to the service role — the anon key must never
+    // be able to write (or read) analytics.
+    const supabase = createServiceClient();
     await supabase.from('page_views').insert({ path });
 
     return NextResponse.json({ ok: true });
