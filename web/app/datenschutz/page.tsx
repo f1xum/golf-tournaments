@@ -13,7 +13,7 @@ export default function DatenschutzPage() {
       <h1>Datenschutzerklärung</h1>
 
       <p className="text-sm text-gray-500">
-        Stand: Mai 2026
+        Stand: August 2026
       </p>
 
       <h2>1. Verantwortlicher</h2>
@@ -86,7 +86,27 @@ export default function DatenschutzPage() {
         DSGVO (berechtigtes Interesse an einer statistischen Auswertung).
       </p>
 
-      <h2>7. Analyse mit Einwilligung (Contentsquare / Hotjar)</h2>
+      <h2>7. Eigene Reichweitenmessung</h2>
+      <p>
+        Zusätzlich erfassen wir in unserer eigenen Datenbank (Supabase, siehe Ziffer 4), welche
+        Seiten aufgerufen werden. Gespeichert werden der Pfad der aufgerufenen Seite und der
+        Zeitpunkt des Aufrufs. <strong>Keine</strong> IP-Adressen, Geräte- oder
+        Browserinformationen. Bist du eingeloggt, wird zusätzlich deine Nutzer-ID gespeichert,
+        damit wir Aufrufe angemeldeter Nutzer von denen nicht angemeldeter Besucher unterscheiden
+        können. Nicht angemeldete Aufrufe werden ohne jede Kennung gespeichert und lassen sich
+        keiner Person zuordnen.
+      </p>
+      <p>
+        Zweck: Wir wollen erkennen, welche Turniere und Clubs gefragt sind und ob angemeldete
+        Nutzer die Plattform tatsächlich verwenden. Die Auswertung erfolgt ausschließlich intern
+        und wird nicht an Dritte weitergegeben. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO
+        (berechtigtes Interesse an einer statistischen Auswertung und Verbesserung des Angebots).
+        Löschst du dein Konto, wird die Nutzer-ID aus den Aufrufdaten entfernt; die verbleibenden
+        Aufrufe sind dann anonym. Du kannst der Erfassung jederzeit widersprechen (Art. 21 DSGVO)
+        – eine Nachricht an <a href="mailto:info@thepin.app">info@thepin.app</a> genügt.
+      </p>
+
+      <h2>8. Analyse mit Einwilligung (Contentsquare / Hotjar)</h2>
       <p>
         <strong>Nur mit deiner ausdrücklichen Einwilligung</strong> setzen wir das Analyse-Tool
         Contentsquare (vormals Hotjar) ein. Anbieter ist die Contentsquare SAS, 8 rue Saint
@@ -110,7 +130,7 @@ export default function DatenschutzPage() {
         .
       </p>
 
-      <h2>8. Kartendarstellung (OpenStreetMap / CARTO)</h2>
+      <h2>9. Kartendarstellung (OpenStreetMap / CARTO)</h2>
       <p>
         Karten werden über den Tile-Dienst von CARTO (CARTO, 201 Moore St, Brooklyn, NY 11206,
         USA) auf Basis von OpenStreetMap-Daten ausgeliefert. Beim Laden der Karten wird deine
@@ -118,7 +138,7 @@ export default function DatenschutzPage() {
         DSGVO (berechtigtes Interesse an einer ansprechenden Darstellung von Standortdaten).
       </p>
 
-      <h2>9. Cookies und lokale Speicherung</h2>
+      <h2>10. Cookies und lokale Speicherung</h2>
       <p>
         Wir verwenden ausschließlich technisch notwendige Cookies und solche, denen du aktiv
         zugestimmt hast. Notwendige Speicherung umfasst insbesondere deine Login-Session, deine
@@ -127,7 +147,7 @@ export default function DatenschutzPage() {
         Abs. 1 lit. f DSGVO.
       </p>
 
-      <h2>10. Deine Rechte</h2>
+      <h2>11. Deine Rechte</h2>
       <p>
         Dir stehen folgende Rechte zu:
       </p>
@@ -145,7 +165,7 @@ export default function DatenschutzPage() {
         <a href="mailto:info@thepin.app">info@thepin.app</a>.
       </p>
 
-      <h2>11. Beschwerderecht bei der Aufsichtsbehörde</h2>
+      <h2>12. Beschwerderecht bei der Aufsichtsbehörde</h2>
       <p>
         Unbeschadet anderer Rechtsbehelfe steht dir ein Beschwerderecht bei einer
         Datenschutz-Aufsichtsbehörde zu, insbesondere in dem Mitgliedstaat deines gewöhnlichen
@@ -153,7 +173,7 @@ export default function DatenschutzPage() {
         Landesamt für Datenschutzaufsicht, Promenade 18, 91522 Ansbach.
       </p>
 
-      <h2>12. Änderungen dieser Datenschutzerklärung</h2>
+      <h2>13. Änderungen dieser Datenschutzerklärung</h2>
       <p>
         Wir behalten uns vor, diese Datenschutzerklärung anzupassen, damit sie stets den
         aktuellen rechtlichen Anforderungen entspricht oder um Änderungen unserer Leistungen
