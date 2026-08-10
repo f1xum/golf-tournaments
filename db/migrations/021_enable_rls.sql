@@ -64,6 +64,12 @@ CREATE POLICY tournaments_public_read
 -- ============================================
 -- page_views  (no policies → service role only)
 -- ============================================
+-- A dashboard-created policy "Anyone can insert page views" exists here. It
+-- was inert while RLS was off; enabling RLS would activate it and let anyone
+-- with the anon key forge analytics. /api/track uses the service-role client
+-- now, so drop it rather than inherit it.
+DROP POLICY IF EXISTS "Anyone can insert page views" ON page_views;
+
 ALTER TABLE page_views ENABLE ROW LEVEL SECURITY;
 
 -- ============================================

@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -19,10 +20,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // Who is viewing? The beacon is same-origin, so the Supabase session
+    // cookie rides along and we can separate members from anonymous visitors.
+    // A hiccup in the auth lookup must not cost us the page view, so we fall
+    // back to NULL — the view is then counted as an anonymous one.
+    let userId: string | null = null;
+    try {
+      const session = await createClient();
+      const { data: { user } } = await session.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      // leave userId null
+    }
+
     // page_views is RLS-locked to the service role — the anon key must never
     // be able to write (or read) analytics.
     const supabase = createServiceClient();
-    await supabase.from('page_views').insert({ path });
+    await supabase.from('page_views').insert({ path, user_id: userId });
 
     return NextResponse.json({ ok: true });
   } catch {

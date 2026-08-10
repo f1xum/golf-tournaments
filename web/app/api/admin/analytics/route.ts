@@ -29,18 +29,15 @@ export async function GET(request: NextRequest) {
 
   // Run all queries in parallel
   const [
-    { count: totalViews },
+    { data: audienceRows },
     { data: topPages },
     { data: topTournaments },
     { data: topClubs },
     { data: dailyViews },
     { count: todayViews },
   ] = await Promise.all([
-    // Total views in range
-    supabase
-      .from('page_views')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', since),
+    // Headline counts for the range, split into members vs visitors
+    supabase.rpc('audience_summary', { since_date: since }),
 
     // Top pages overall
     supabase.rpc('top_pages', { since_date: since, lim: 20 }),
@@ -61,9 +58,21 @@ export async function GET(request: NextRequest) {
       .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
   ]);
 
+  // audience_summary RETURNS TABLE, so PostgREST hands back a one-row array.
+  const audience = audienceRows?.[0];
+
   return NextResponse.json({
-    totalViews: totalViews ?? 0,
+    totalViews: Number(audience?.total_views ?? 0),
     todayViews: todayViews ?? 0,
+    audience: {
+      memberViews: Number(audience?.member_views ?? 0),
+      visitorViews: Number(audience?.visitor_views ?? 0),
+      // Views recorded before migration 022 — anonymous and member views are
+      // indistinguishable in those rows, so they are never counted as either.
+      untrackedViews: Number(audience?.untracked_views ?? 0),
+      activeUsers: Number(audience?.active_users ?? 0),
+      trackingSince: audience?.tracking_since ?? null,
+    },
     topPages: topPages ?? [],
     topTournaments: topTournaments ?? [],
     topClubs: topClubs ?? [],
