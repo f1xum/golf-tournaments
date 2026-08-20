@@ -45,9 +45,18 @@ class Database:
         )
         return result.data
 
-    def get_all_clubs(self) -> list[dict]:
-        result = self.client.table("golf_clubs").select("*").execute()
-        return result.data
+    def get_all_clubs(self, *, include_merged: bool = False) -> list[dict]:
+        """Canonical clubs. Duplicates (merged_into set) are excluded by default.
+
+        Scrapers must not see merged rows: matching a venue name onto one would
+        put the tournament back on the duplicate the merge just emptied, and the
+        club page would go blank again on the next run. Pass include_merged=True
+        only for maintenance that has to see every row (e.g. the merge script).
+        """
+        query = self.client.table("golf_clubs").select("*")
+        if not include_merged:
+            query = query.is_("merged_into", "null")
+        return query.execute().data
 
     def get_clubs_without_coordinates(self) -> list[dict]:
         result = (
@@ -69,6 +78,7 @@ class Database:
             self.client.table("golf_clubs")
             .select("id,name,nexxchange_id")
             .not_.is_("nexxchange_id", "null")
+            .is_("merged_into", "null")
             .execute()
         )
         return result.data
@@ -80,6 +90,11 @@ class Database:
             self.client.table("golf_clubs")
             .select("id,name,pccaddie_id,region")
             .not_.is_("pccaddie_id", "null")
+            # A merged duplicate keeps its pccaddie_id (it is the same club, so
+            # the id is still correct), so without this the scraper would visit
+            # the same calendar twice and re-populate the row we just merged
+            # away.
+            .is_("merged_into", "null")
         )
         if regions:
             query = query.in_("region", regions)

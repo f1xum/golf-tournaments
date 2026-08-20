@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, GolfClub } from '@/lib/types';
 import { ArrowLeft, Search, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { USERNAME_MAX, normalizeUsername, usernameError } from '@/lib/username';
 
 interface Props {
   profile: Profile | null;
@@ -56,11 +57,20 @@ export default function SettingsClient({ profile, clubs, email }: Props) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    if (username && username !== profile?.username) {
+    // Usernames are mandatory, so this form can change one but never clear it.
+    const trimmedUsername = username.trim();
+    const usernameProblem = usernameError(trimmedUsername);
+    if (usernameProblem) {
+      setError(usernameProblem);
+      setSaving(false);
+      return;
+    }
+
+    if (trimmedUsername !== profile?.username) {
       const { data: existing } = await supabase
         .from('profiles')
         .select('id')
-        .eq('username', username)
+        .eq('username', trimmedUsername)
         .neq('id', user.id)
         .maybeSingle();
 
@@ -72,7 +82,7 @@ export default function SettingsClient({ profile, clubs, email }: Props) {
     }
 
     const updates = {
-      username: username || null,
+      username: trimmedUsername,
       display_name: displayName || null,
       home_club_id: homeClubId || null,
       handicap: handicap ? parseFloat(handicap) : null,
@@ -134,17 +144,18 @@ export default function SettingsClient({ profile, clubs, email }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Benutzername
+                Benutzername <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center">
                 <span className="px-3 py-2 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-400">@</span>
                 <input
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''))}
+                  onChange={(e) => setUsername(normalizeUsername(e.target.value))}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   placeholder="benutzername"
-                  maxLength={30}
+                  maxLength={USERNAME_MAX}
+                  required
                 />
               </div>
             </div>

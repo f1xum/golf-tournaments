@@ -48,7 +48,10 @@ export default function ClubsClient({ clubs, savedClubIds }: Props) {
         if (dist > Number(filters.distance)) return false;
       }
       if (q) {
-        const haystack = `${c.name} ${c.city || ''} ${c.address || ''}`.toLowerCase();
+        // Include merged-away names so searching a course ("Gut Häusern")
+        // still finds the club it was merged into.
+        const aka = (c.also_known_as ?? []).join(' ');
+        const haystack = `${c.name} ${c.city || ''} ${c.address || ''} ${aka}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;

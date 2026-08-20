@@ -47,6 +47,19 @@ export interface GolfClub {
   courses: { name: string; holes: number | null }[] | null;
   has_9_holes: boolean;
   has_18_holes: boolean;
+  /**
+   * Set when this row is a duplicate of another club (see migration 023).
+   * Duplicates are hidden from every browse surface and their club page 301s
+   * to the keeper, so a user never lands on the empty half of a split club.
+   */
+  merged_into?: string | null;
+  /**
+   * Names of duplicate rows merged into this club — typically its individual
+   * courses ("Golfpark Gut Häusern") or alternate spellings. Shown on the club
+   * page and matched by club search, so collapsing duplicates does not make a
+   * course unfindable.
+   */
+  also_known_as?: string[] | null;
   course_data?: CourseData | null;
 }
 

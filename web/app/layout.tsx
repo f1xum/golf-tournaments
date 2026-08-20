@@ -3,6 +3,7 @@ import Nav from '@/components/nav';
 import BottomNav from '@/components/bottom-nav';
 import RouteProgress from '@/components/route-progress';
 import ProfileCompletionBanner from '@/components/profile-completion-banner';
+import UsernameGate from '@/components/username-gate';
 import QueryProvider from '@/components/query-provider';
 import './globals.css';
 import ConditionalVercelAnalytics from '@/components/conditional-vercel-analytics';
@@ -80,6 +81,7 @@ export default function RootLayout({
           <SiteFooter />
           <BottomNav />
           <InstallPrompt />
+          <UsernameGate />
           <ConditionalVercelAnalytics />
           <PageTracker />
         </QueryProvider>

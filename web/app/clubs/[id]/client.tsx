@@ -68,6 +68,14 @@ export default function ClubDetailClient({ club, upcoming, past, userId, savedTo
               <span>{[club.city, club.region].filter(Boolean).join(', ')}</span>
             </div>
           )}
+          {/* Names of rows merged into this club — usually its individual
+              courses. The tournament calendar covers the whole club, so the
+              courses are listed here rather than given their own empty pages. */}
+          {club.also_known_as && club.also_known_as.length > 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              Auch bekannt als: {club.also_known_as.join(' · ')}
+            </p>
+          )}
         </div>
       </div>
 
