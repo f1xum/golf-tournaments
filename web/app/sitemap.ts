@@ -18,6 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     supabase
       .from('golf_clubs')
       .select('id')
+      // Merged duplicates 301 to their keeper, so submitting them would only
+      // feed Google redirect chains and near-duplicate club pages.
+      .is('merged_into', null)
       .limit(2000),
   ]);
 

@@ -32,7 +32,9 @@ async function getData() {
   }
 
   return {
-    clubs: (clubs ?? []) as GolfClub[],
+    // Hide rows merged into another club — they are the same course listed
+    // twice, and the duplicate is the copy with no tournaments on it.
+    clubs: ((clubs ?? []) as GolfClub[]).filter((c) => !c.merged_into),
     savedClubIds,
   };
 }

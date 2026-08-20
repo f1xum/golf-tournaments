@@ -19,6 +19,8 @@ export default async function WillkommenPage() {
   const { data: clubsData } = await supabase
     .from('golf_clubs')
     .select('id,name,city')
+    // Same reason as the settings picker: a merged duplicate is a dead end.
+    .is('merged_into', null)
     .order('name');
 
   const clubs = (clubsData ?? []) as Pick<GolfClub, 'id' | 'name' | 'city'>[];

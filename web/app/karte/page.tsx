@@ -12,8 +12,10 @@ async function getData() {
   const [clubsRes, countsRes, userRes] = await Promise.all([
     supabase
       .from('golf_clubs')
-      .select('id,name,city,region,latitude,longitude,website')
-      .not('latitude', 'is', null),
+      .select('id,name,city,region,latitude,longitude,website,merged_into')
+      .not('latitude', 'is', null)
+      // Duplicates sit on top of their keeper's pin and show zero tournaments.
+      .is('merged_into', null),
     supabase
       .from('tournaments')
       .select('club_id')

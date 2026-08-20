@@ -17,7 +17,9 @@ async function getData() {
       .gte('date_start', today),
     supabase
       .from('golf_clubs')
-      .select('id', { count: 'exact', head: true }),
+      .select('id', { count: 'exact', head: true })
+      // Headline count should match what /clubs actually lists.
+      .is('merged_into', null),
     supabase.auth.getUser(),
   ]);
 

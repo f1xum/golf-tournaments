@@ -6,9 +6,15 @@ import { distanceKm } from './utils';
 const CLUB_FIELDS =
   'id,name,city,region,postal_code,latitude,longitude,logo_url,website,has_9_holes,has_18_holes,courses';
 
-/** Load every club once. Cached by the caller's ISR `revalidate`. */
+/** Load every canonical club once. Cached by the caller's ISR `revalidate`. */
 export async function loadAllClubs(supabase: SupabaseClient): Promise<GolfClub[]> {
-  const { data } = await supabase.from('golf_clubs').select(CLUB_FIELDS).order('name');
+  const { data } = await supabase
+    .from('golf_clubs')
+    .select(CLUB_FIELDS)
+    // Duplicate rows would list the same course twice on a geo page, once with
+    // its tournaments and once looking empty.
+    .is('merged_into', null)
+    .order('name');
   return (data ?? []) as unknown as GolfClub[];
 }
 

@@ -1,6 +1,7 @@
 """Use Claude API to extract structured tournament data from unstructured text/HTML."""
 
 import json
+import re
 
 import anthropic
 
@@ -65,3 +66,57 @@ def extract_tournaments_with_llm(text: str) -> list[dict]:
     except json.JSONDecodeError:
         print(f"  ⚠ LLM returned invalid JSON: {response_text[:200]}")
         return []
+
+
+MONTH_PAGE_PROMPT = """Jede Zeile unten ist ein bereits aufgelöstes Datum aus einem
+deutschen Golf-Turnierkalender, gefolgt vom Text dieser Kalenderzeile.
+
+Gib für JEDE Zeile, die ein echtes Turnier beschreibt, ein JSON-Objekt zurück:
+  "name"        Turniername, ohne Platzkürzel, Startzeit oder Fußnotenzeichen
+  "date_start"  exakt das Datum am Zeilenanfang, unverändert übernehmen
+  "format"      einer von: strokeplay, stableford, matchplay, scramble,
+                texas_scramble, chapman, vierer, best_ball, other
+  "description" Startzeit, Platz und Hinweise, sonst null
+
+Regeln:
+- Das Datum NIEMALS verändern, verschieben oder erraten.
+- Nur echte Turniere. Keine Kurse, Ferien, Platzsperren, Sitzungen, Öffnungszeiten.
+- Enthält eine Zeile mehrere Turniere, gib mehrere Objekte mit demselben Datum zurück.
+
+Antworte NUR mit einem JSON-Array, ohne Erklärung.
+
+ZEILEN:
+{text}"""
+
+
+def extract_month_page_with_llm(dated_lines: str) -> list[dict]:
+    """Name and classify tournaments from already-dated calendar lines.
+
+    Dates are resolved from the PDF's own layout before this is called (see
+    src/parsers/pdf_calendar.py) and passed in on each line. The model never
+    computes a date — an earlier version let it infer dates from raw page text
+    and it placed tournaments up to five days off.
+    """
+    if not settings.anthropic_api_key:
+        raise ValueError("ANTHROPIC_API_KEY not set")
+
+    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": MONTH_PAGE_PROMPT.format(text=dated_lines[:50000]),
+        }],
+    )
+
+    response_text = message.content[0].text.strip()
+    if response_text.startswith("```"):
+        response_text = response_text.split("\n", 1)[1]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+    try:
+        data = json.loads(response_text)
+    except json.JSONDecodeError:
+        return []
+    return data if isinstance(data, list) else []

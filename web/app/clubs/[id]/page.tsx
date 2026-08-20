@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import ClubDetailClient from './client';
@@ -46,6 +46,12 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
   ]);
 
   if (!club) notFound();
+
+  // This row is a duplicate of another club, and the tournaments live on the
+  // keeper. Send the user (and Google) there rather than rendering a club that
+  // looks like it never hosts anything. Permanent, because these URLs are
+  // already indexed and the merge is not going to be undone.
+  if (club.merged_into) permanentRedirect(`/clubs/${club.merged_into}`);
 
   let savedTournamentIds: string[] = [];
   if (user) {

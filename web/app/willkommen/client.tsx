@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Profile, GolfClub } from '@/lib/types';
 import { Flag, Search, ChevronRight, ChevronLeft, Sparkles, MapPin, Trophy, User, Target } from 'lucide-react';
 import { FORMAT_LABELS } from '@/lib/constants';
+import { USERNAME_MAX, isValidUsername, normalizeUsername } from '@/lib/username';
 
 const TOTAL_STEPS = 5;
 
@@ -53,12 +54,23 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
 
-    // Username uniqueness check (only if changed)
-    if (username && username !== profile?.username) {
+    // A username is mandatory, so a missing one sends the user back to step 1
+    // rather than saving a profile that <UsernameGate /> would immediately
+    // block on.
+    const trimmedUsername = username.trim();
+    if (!isValidUsername(trimmedUsername)) {
+      setSaveError('Bitte wähle einen Benutzernamen.');
+      setSaving(false);
+      setDirection('back');
+      setStep(1);
+      return;
+    }
+
+    if (trimmedUsername !== profile?.username) {
       const { data: existing } = await supabase
         .from('profiles')
         .select('id')
-        .eq('username', username)
+        .eq('username', trimmedUsername)
         .neq('id', user.id)
         .maybeSingle();
 
@@ -72,7 +84,7 @@ export default function OnboardingClient({ profile, clubs, email }: Props) {
     }
 
     const { error } = await supabase.from('profiles').update({
-      username: username || null,
+      username: trimmedUsername,
       display_name: displayName || null,
       handicap: handicap ? parseFloat(handicap) : null,
       home_club_id: homeClubId || null,
@@ -212,12 +224,8 @@ function WelcomeStep({ email, onNext }: { email: string; onNext: () => void }) {
         Los geht&apos;s
         <ChevronRight size={18} />
       </button>
-      <button
-        onClick={() => window.location.href = '/turniere'}
-        className="w-full mt-3 py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-      >
-        Überspringen
-      </button>
+      {/* No "skip": a username is required, and skipping here only moved the
+          user to a page where <UsernameGate /> blocks them anyway. */}
     </div>
   );
 }
@@ -245,9 +253,7 @@ function ProfileStep({
   externalError: string | null;
 }) {
   const trimmedName = displayName.trim();
-  const trimmedUsername = username.trim();
-  const usernameValid = trimmedUsername.length >= 3;
-  const canContinue = trimmedName.length > 0 && usernameValid;
+  const canContinue = trimmedName.length > 0 && isValidUsername(username.trim());
 
   return (
     <div>
@@ -286,10 +292,10 @@ function ProfileStep({
             <input
               type="text"
               value={username}
-              onChange={(e) => onUsernameChange(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''))}
+              onChange={(e) => onUsernameChange(normalizeUsername(e.target.value))}
               className="flex-1 px-4 py-3 border border-gray-200 rounded-r-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
               placeholder="benutzername"
-              maxLength={30}
+              maxLength={USERNAME_MAX}
               required
             />
           </div>

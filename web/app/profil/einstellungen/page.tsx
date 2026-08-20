@@ -15,7 +15,9 @@ export default async function SettingsPage() {
 
   const [{ data: profile }, { data: clubs }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('golf_clubs').select('id, name, city').order('name'),
+    // Never offer a merged duplicate as a home club — picking it would tie the
+    // user's feed to a row that has no tournaments.
+    supabase.from('golf_clubs').select('id, name, city').is('merged_into', null).order('name'),
   ]);
 
   return (

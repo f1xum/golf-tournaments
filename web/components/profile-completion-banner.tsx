@@ -41,7 +41,9 @@ export default function ProfileCompletionBanner() {
           if (!data) { setMissing(null); return; }
           const m: string[] = [];
           if (!data.display_name) m.push('Name');
-          if (!data.username) m.push('Benutzername');
+          // Username is deliberately absent: it is mandatory, and
+          // <UsernameGate /> blocks the app until it is set, so a dismissable
+          // banner would only ever be redundant with a modal already on screen.
           if (!data.home_club_id) m.push('Heimatclub');
           setMissing(m.length > 0 ? m : null);
         });
