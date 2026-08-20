@@ -14,12 +14,19 @@ alone misses ~80 clubs.
 | | start | after this work |
 |---|---|---|
 | clubs (raw rows) | 300 | 180 canonical (120 merged away) |
-| clubs with tournaments | 85 | 79 |
-| clubs still empty | 215 | 101 |
+| clubs with upcoming tournaments | ~85 (28%) | 81 (45%) |
 
-The "with tournaments" count barely moved because merging removed 120 phantom
-rows; as a share it went 28% → 44%. 12 clubs newly filled from PDF calendars
-(550 tournaments, e.g. Münchener Golf Club 100, Gut Ludwigsberg 105).
+The absolute count barely moved because merging removed 120 phantom rows; the
+share is the honest measure and it went 28% → 45%. 11 clubs newly filled from
+PDF calendars (~528 upcoming tournaments), e.g. Münchener Golf Club 100, Gut
+Ludwigsberg 115, Eicherloh 54, Waldegg-Wiggensbach 40.
+
+The PDF harvest was verified club-by-club against the source PDFs. That caught
+four clubs (Königsbrunn, Waldegg, Ludwigsberg, Eicherloh) whose dates were
+entirely wrong — a months-as-columns grid layout the parser mis-read into a
+single month. Three were fixed and re-imported; Königsbrunn's PDF wraps names
+across rows and is mostly holidays, so it was left empty rather than import
+fragments. See [../pdf-calendars.md](../pdf-calendars.md).
 
 ## What did the work
 

@@ -66,13 +66,49 @@ class TestParseRow:
         # A misread column, not a tournament.
         assert parse_row("31.06. Geisterturnier", 2026, None) is None
 
-    def test_column_fragment_with_a_date_but_no_name_is_rejected(self):
+    def test_course_code_fragment_with_a_date_is_rejected(self):
         # Left over from splitting the Bad Griesbach resort's multi-column PDF.
+        # (Semantic junk like "Stand:" or "Karfreitag" is dropped later by the
+        # LLM, not here — this gate only rejects unpronounceable fragments.)
         assert parse_row("01.02. Be/Po/Bw", 2026, None) is None
-        assert parse_row("18.12. Stand:", 2026, None) is None
+        assert parse_row("01.02. Be/Po/Bw/Ut", 2026, None) is None
 
     def test_row_without_any_date(self):
         assert parse_row("TURNIERKALENDER 2026", 2026, None) is None
+
+
+class TestMonthColumnsGrid:
+    def test_full_year_grid_reads_month_from_column_not_row(self):
+        # Königsbrunn / Waldegg: months are columns across the page. The naive
+        # row parser dumped every column into the first month.
+        words = [
+            # header row
+            {"text": "April", "top": 0.0, "x0": 100.0, "x1": 130.0},
+            {"text": "Mai",   "top": 0.0, "x0": 300.0, "x1": 320.0},
+            {"text": "Juni",  "top": 0.0, "x0": 500.0, "x1": 525.0},
+            # day-2 row: one cell per month
+            {"text": "2",  "top": 12.0, "x0": 100.0, "x1": 106.0},
+            {"text": "Sa", "top": 12.0, "x0": 108.0, "x1": 120.0},
+            {"text": "Osterturnier", "top": 12.0, "x0": 122.0, "x1": 180.0},
+            {"text": "2",  "top": 12.0, "x0": 300.0, "x1": 306.0},
+            {"text": "Mo", "top": 12.0, "x0": 308.0, "x1": 320.0},
+            {"text": "Maipokal", "top": 12.0, "x0": 322.0, "x1": 370.0},
+        ]
+        got = extract_dated_rows(words, "April Mai Juni Juli", 2026)
+        assert (date(2026, 4, 2), "Osterturnier") in got
+        assert (date(2026, 5, 2), "Maipokal") in got
+
+    def test_a_page_with_only_one_month_name_is_not_treated_as_columns(self):
+        words = [
+            {"text": "April", "top": 0.0, "x0": 100.0, "x1": 130.0},
+            {"text": "15", "top": 12.0, "x0": 0.0, "x1": 10.0},
+            {"text": "Mi", "top": 12.0, "x0": 12.0, "x1": 24.0},
+            {"text": "BGV", "top": 12.0, "x0": 200.0, "x1": 230.0},
+            {"text": "Cup", "top": 12.0, "x0": 232.0, "x1": 260.0},
+        ]
+        # Falls through to the single-month grid, resolved by the header.
+        got = extract_dated_rows(words, "TURNIERE IM MONAT April", 2026)
+        assert got == [(date(2026, 4, 15), "BGV Cup")]
 
 
 class TestDetectYear:

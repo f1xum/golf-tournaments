@@ -147,16 +147,18 @@ def parse_row(row: str, year: int, month_hint: int | None) -> tuple[date, str] |
 
 
 def looks_like_a_tournament(text: str) -> bool:
-    """Reject row remnants that carry a date but name nothing.
+    """Reject row remnants that carry a date but name nothing real.
 
     Splitting a multi-column page leaves fragments — course-code legends
-    ("Be/Po/Bw"), footers ("Stand:"), stray times. They parse as dated rows and
-    would be filed as real tournaments. A genuine entry always has a word you
-    could read aloud, so require some actual prose.
+    ("Be/Po/Bw"), stray week numbers, times. This is a coarse gate only: the LLM
+    is the semantic filter that drops holidays and footers ("Karfreitag",
+    "Stand: 02.06."). So require just one pronounceable word (≥3 letters) and a
+    little prose, which is enough to drop the code fragments while keeping short
+    real names like "BGV Cup".
     """
     letters = sum(character.isalpha() for character in text)
     longest = max((len(word) for word in re.findall(r"[A-Za-zÄÖÜäöüß]+", text)), default=0)
-    return letters >= 8 and longest >= 4
+    return letters >= 4 and longest >= 3
 
 
 def _build(day: int, month: int, year: int, rest: str) -> tuple[date, str] | None:
@@ -169,10 +171,87 @@ def _build(day: int, month: int, year: int, rest: str) -> tuple[date, str] | Non
         return None
 
 
+# A header naming this many months in a row means the page is a full-year grid
+# with one column per month (Golfclub Königsbrunn, Waldegg-Wiggensbach), not a
+# single-month page.
+MONTH_COLUMNS_THRESHOLD = 3
+
+
+def month_column_headers(words: list[dict]) -> list[tuple[float, int]]:
+    """(x, month) for month-name headers, when the page is a months-as-columns
+    grid. Empty otherwise."""
+    headers = [
+        (w["x0"], MONTH_NAMES[w["text"].lower()])
+        for w in words
+        if w["text"].lower() in MONTH_NAMES
+    ]
+    # Distinct months, left to right. A single-month page has at most one or two
+    # stray month words and is handled by the row parser instead.
+    by_month = {}
+    for x, month in sorted(headers):
+        by_month.setdefault(month, x)
+    if len(by_month) < MONTH_COLUMNS_THRESHOLD:
+        return []
+    return sorted((x, m) for m, x in by_month.items())
+
+
+def extract_month_columns(
+    words: list[dict], columns: list[tuple[float, int]], year: int
+) -> list[tuple[date, str]]:
+    """Read a full-year grid whose columns are months.
+
+    Each cell holds a repeated day number, a weekday, then the entry. The month
+    comes from which column a word's x falls in; the day from the cell's own
+    leading number. Column dividers are the midpoints between header positions,
+    so an entry sitting slightly left of its header still lands in the right
+    month.
+    """
+    xs = [x for x, _ in columns]
+    dividers = [(xs[i] + xs[i + 1]) / 2 for i in range(len(xs) - 1)]
+
+    def column_of(x: float) -> int:
+        edge = 0
+        while edge < len(dividers) and x >= dividers[edge]:
+            edge += 1
+        return edge
+
+    # Bucket words by (row band, column), then read each cell.
+    cells: dict[tuple[int, int], list[dict]] = defaultdict(list)
+    for word in words:
+        band = round(word["top"] / ROW_BAND) * ROW_BAND
+        cells[(band, column_of(word["x0"]))].append(word)
+
+    found = []
+    for (_, col), cell_words in cells.items():
+        if col >= len(columns):
+            continue
+        cell = _clean(" ".join(w["text"] for w in sorted(cell_words, key=lambda w: w["x0"])))
+
+        # Some grids print an explicit date in each cell ("Do 01.05. Gastro
+        # Scramble", Golf-Club Neumarkt); others give only a day number and rely
+        # on the column for the month ("2 Sa Saisoneröffnung", Königsbrunn).
+        # Try the row parser first — it reads any in-cell date — and fall back
+        # to the column's month with the cell's leading day number.
+        built = parse_row(cell, year, columns[col][1])
+        if not built:
+            tokens = cell.split()
+            if tokens and tokens[0].isdigit():
+                rest = re.sub(r"^(?:Mo|Di|Mi|Do|Fr|Sa|So)\b\.?\s*",
+                              "", _clean(" ".join(tokens[1:])))
+                built = _build(int(tokens[0]), columns[col][1], year, rest)
+        if built:
+            found.append(built)
+    return found
+
+
 def extract_dated_rows(
     words: list[dict], page_text: str, year: int
 ) -> list[tuple[date, str]]:
     """Every row on a page that resolves to a date plus some text."""
+    columns = month_column_headers(words)
+    if columns:
+        return extract_month_columns(words, columns, year)
+
     month_hint = detect_month(page_text)
     found = []
     for row in rows_from_words(words):
