@@ -8,10 +8,15 @@
  *
  *   1. utm_source on the URL — we put it there ourselves (see /ig), so it is
  *      the only one that can name a placement ("bio" vs "story").
- *   2. The referring domain — present for a normal click from another site.
- *   3. The in-app browser signature — Instagram's and Facebook's webviews
- *      often send no referrer at all, but they do identify themselves in the
- *      user agent. Without this, most Instagram traffic reads as "direct".
+ *   2. The in-app browser signature — Instagram's and Facebook's webviews
+ *      identify themselves in the user agent. Without this, an untagged visit
+ *      from the Instagram app reads as "direct" (no referrer at all) or, worse,
+ *      as "facebook" (Meta's link shim reports facebook.com for Instagram
+ *      taps). It says which app the page is being viewed in, so it outranks a
+ *      social referrer.
+ *   3. The referring domain — a normal click from another site. It still wins
+ *      whenever it is not social, since a search result or a club website is a
+ *      real origin even when rendered inside an in-app browser.
  *
  * The result is remembered for the browser session, so page 5 of a visit is
  * still credited to Instagram even though the utm parameters are long gone
@@ -125,11 +130,34 @@ function fromReferrer(referrerHost: string | null): TrafficSource | null {
   };
 }
 
-function fromUserAgent(): TrafficSource | null {
+/**
+ * The app whose webview this is, which beats a social referrer.
+ *
+ * Meta runs Instagram and Facebook clicks through shared link-shim
+ * infrastructure, so a tap on an Instagram bio link routinely arrives with
+ * `facebook.com` as the referrer — observed on the very first day of real
+ * traffic, where all four visits reported facebook.com and one of them was
+ * consequently filed under Facebook. The user agent is unambiguous about which
+ * app the page is being viewed in, so it wins that tie.
+ *
+ * It only wins that tie, though. A referrer that maps to something other than
+ * social — a search engine, a golf club's website — is a genuine click from
+ * elsewhere that happens to be rendered in an in-app browser, and it keeps its
+ * attribution.
+ */
+function fromAppBrowser(referrerHost: string | null): TrafficSource | null {
   const ua = navigator.userAgent || '';
   const app = APP_BROWSERS.find((a) => a.test.test(ua));
   if (!app) return null;
-  return { source: app.source, medium: app.medium, campaign: null, referrerHost: null };
+
+  if (referrerHost) {
+    const known = REFERRER_MAP.find((r) => r.test.test(referrerHost));
+    if (!known || known.medium !== 'social') return null;
+  }
+
+  // Keep the host: the source says Instagram, the referrer panel still reports
+  // the facebook.com it actually came through.
+  return { source: app.source, medium: app.medium, campaign: null, referrerHost };
 }
 
 function readSession(): TrafficSource | null {
@@ -179,7 +207,12 @@ export function resolveTrafficSource(): ResolvedTrafficSource {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const fresh = fromUrl(params, referrerHost) ?? fromReferrer(referrerHost) ?? fromUserAgent();
+  // Order matters: the app webview beats a social referrer (Meta's shim reports
+  // facebook.com for Instagram taps), but loses to a non-social one.
+  const fresh =
+    fromUrl(params, referrerHost) ??
+    fromAppBrowser(referrerHost) ??
+    fromReferrer(referrerHost);
   const stored = readSession();
 
   // A fresh utm-tagged click mid-session starts a new visit — someone tapping

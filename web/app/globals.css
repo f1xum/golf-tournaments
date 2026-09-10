@@ -40,6 +40,11 @@ html.dark {
 /* Backgrounds */
 html.dark .bg-white { background-color: #222222 !important; }
 html.dark .bg-gray-50 { background-color: #1e1e1e !important; }
+/* Zebra stripe on the admin tables. Needs its own rule: the class is
+   `bg-gray-50/50`, which the `.bg-gray-50` selector above does not match, so
+   without this the 50%-opacity light gray composites over the dark card and
+   every other row comes out as a bright band. */
+html.dark .bg-gray-50\/50 { background-color: #1e1e1e !important; }
 html.dark .bg-gray-100 { background-color: #2a2a2a !important; }
 html.dark .bg-gray-200 { background-color: #333333 !important; }
 
