@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3, Eye, TrendingUp, Trophy, Building2, Loader2, ChevronDown, ChevronUp, Globe, Users } from 'lucide-react';
+import { BarChart3, Eye, TrendingUp, Trophy, Building2, Loader2, ChevronDown, ChevronUp, Globe, Users, Share2, ExternalLink } from 'lucide-react';
 
 /* Audience segments. Validated for colour-blind separation against a white
    surface — do not swap these for arbitrary greens/blues. */
@@ -51,10 +51,39 @@ interface Audience {
   trackingSince: string | null;
 }
 
+interface TrafficSourceRow {
+  source: string;
+  medium: string | null;
+  views: number;
+  visits: number;
+  member_views: number;
+}
+
+interface TrafficCampaignRow extends TrafficSourceRow {
+  campaign: string | null;
+}
+
+interface ReferrerRow {
+  referrer_host: string;
+  views: number;
+  visits: number;
+}
+
+interface Traffic {
+  visits: number;
+  attributedViews: number;
+  untrackedViews: number;
+  trackingSince: string | null;
+  sources: TrafficSourceRow[];
+  campaigns: TrafficCampaignRow[];
+  referrers: ReferrerRow[];
+}
+
 interface AnalyticsData {
   totalViews: number;
   todayViews: number;
   audience: Audience;
+  traffic: Traffic;
   topPages: TopPage[];
   topTournaments: TopTournament[];
   topClubs: TopClub[];
@@ -251,6 +280,9 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Traffic attribution — which channel actually sends people */}
+      <TrafficSection traffic={data.traffic} />
+
       {/* Two-column: Top Tournaments + Top Clubs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ExpandableTable
@@ -335,6 +367,199 @@ export default function AdminDashboard() {
         </div>
       </section>
     </div>
+  );
+}
+
+/* ─── Traffic attribution ─── */
+
+/** Friendly names for the sources lib/traffic-source.ts can produce. */
+const SOURCE_LABELS: Record<string, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  whatsapp: 'WhatsApp',
+  x: 'X (Twitter)',
+  linkedin: 'LinkedIn',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+  pinterest: 'Pinterest',
+  reddit: 'Reddit',
+  telegram: 'Telegram',
+  google: 'Google',
+  bing: 'Bing',
+  duckduckgo: 'DuckDuckGo',
+  ecosia: 'Ecosia',
+  yahoo: 'Yahoo',
+  brave: 'Brave',
+  startpage: 'Startpage',
+  yandex: 'Yandex',
+  email: 'E-Mail',
+  direct: 'Direkt / Lesezeichen',
+};
+
+const MEDIUM_LABELS: Record<string, string> = {
+  social: 'Social Media',
+  organic: 'Suchmaschine',
+  referral: 'Verweis',
+  email: 'E-Mail',
+  cpc: 'Anzeige',
+  none: 'ohne Verweis',
+};
+
+function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? source;
+}
+
+/** "3,2" pages per visit, or a dash when there is no visit to divide by. */
+function perVisit(views: number, visits: number): string {
+  if (visits <= 0) return '–';
+  return `${formatNumber(views / visits, 1)} Seiten/Besuch`;
+}
+
+function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
+  if (!traffic) return null;
+
+  const { sources, campaigns, referrers } = traffic;
+  const maxSourceViews = sources[0]?.views ?? 1;
+
+  return (
+    <section>
+      <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-gray-700 mb-3">
+        <Share2 size={14} className="text-accent" />
+        Woher kommen die Besucher
+        <span className="text-gray-400 font-normal">
+          ({traffic.visits.toLocaleString('de-DE')} Besuche)
+        </span>
+        <span className="ml-auto flex items-center gap-3 text-xs font-normal text-gray-500">
+          <LegendKey color={VISITOR_COLOR} label="Besucher" />
+          <LegendKey color={MEMBER_COLOR} label="Eingeloggt" />
+        </span>
+      </h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
+          {/* Sources, ranked by views — the headline answer */}
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-gray-500">
+                  <th className="px-4 py-2 font-medium">Quelle</th>
+                  <th className="px-4 py-2 font-medium text-right w-24">Besuche</th>
+                  <th className="px-4 py-2 font-medium text-right w-32">Aufrufe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sources.map((s, i) => (
+                  <tr key={s.source} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                    <td className="px-4 py-2.5">
+                      <span className="font-medium text-gray-900">{sourceLabel(s.source)}</span>
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        {s.medium ? MEDIUM_LABELS[s.medium] ?? s.medium : 'unbekannt'}
+                        {' · '}
+                        {perVisit(s.views, s.visits)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium text-gray-900 tabular-nums">
+                      {s.visits.toLocaleString('de-DE')}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <ViewBar value={s.views} memberValue={s.member_views} max={maxSourceViews} />
+                    </td>
+                  </tr>
+                ))}
+                {sources.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
+                      Noch keine Quellen erfasst – Instagram-Link:{' '}
+                      <span className="font-mono text-gray-500">thepin.app/ig</span>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Campaign level: which placement inside a source did the work */}
+          {campaigns.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                Kampagnen / Platzierungen
+              </h3>
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {campaigns.map((c, i) => (
+                      <tr
+                        key={`${c.source}-${c.medium}-${c.campaign}`}
+                        className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                      >
+                        <td className="px-4 py-2">
+                          <span className="text-gray-900">{sourceLabel(c.source)}</span>
+                          <span className="text-gray-400"> · </span>
+                          <span className="font-mono text-xs text-gray-600">{c.campaign}</span>
+                        </td>
+                        <td className="px-4 py-2 text-right w-24 tabular-nums text-gray-900">
+                          {c.visits.toLocaleString('de-DE')}
+                        </td>
+                        <td className="px-4 py-2 text-right w-32">
+                          <ViewBar
+                            value={c.views}
+                            memberValue={c.member_views}
+                            max={campaigns[0]?.views ?? 1}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Raw referring hosts — how an untagged link from elsewhere shows up */}
+        <div>
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+            <ExternalLink size={12} />
+            Verweisende Seiten
+          </h3>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            {referrers.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                Noch keine Verweise – Besucher kamen direkt oder über die App.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {referrers.map((r) => (
+                  <li key={r.referrer_host} className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="font-mono text-xs text-gray-600 truncate" title={r.referrer_host}>
+                      {r.referrer_host}
+                    </span>
+                    <span className="tabular-nums text-gray-900 shrink-0">
+                      {r.visits.toLocaleString('de-DE')}
+                      <span className="text-gray-400 text-xs ml-1">
+                        / {r.views.toLocaleString('de-DE')}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 pt-3 border-t border-gray-100 text-[11px] text-gray-400">
+              Besuche / Aufrufe. Instagram und Facebook liefern oft keine verweisende Seite – die
+              stehen links trotzdem drin.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {traffic.untrackedViews > 0 && (
+        <p className="mt-2 text-[11px] text-gray-400">
+          {traffic.untrackedViews.toLocaleString('de-DE')} Aufrufe stammen aus der Zeit vor der
+          Quellen-Erfassung{traffic.trackingSince ? ` (${formatDate(traffic.trackingSince)})` : ''}{' '}
+          und haben keine Quelle.
+        </p>
+      )}
+    </section>
   );
 }
 

@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
     { data: topTournaments },
     { data: topClubs },
     { data: dailyViews },
+    { data: sourceRows },
+    { data: trafficSources },
+    { data: trafficCampaigns },
+    { data: topReferrers },
     { count: todayViews },
   ] = await Promise.all([
     // Headline counts for the range, split into members vs visitors
@@ -51,6 +55,13 @@ export async function GET(request: NextRequest) {
     // Daily view counts
     supabase.rpc('daily_view_counts', { since_date: since }),
 
+    // Traffic attribution (migration 027): totals, the sources themselves, the
+    // campaign/placement level below them, and the raw referring hosts.
+    supabase.rpc('traffic_source_summary', { since_date: since }),
+    supabase.rpc('traffic_sources', { since_date: since, lim: 12 }),
+    supabase.rpc('traffic_campaigns', { since_date: since, lim: 20 }),
+    supabase.rpc('top_referrers', { since_date: since, lim: 10 }),
+
     // Today's views
     supabase
       .from('page_views')
@@ -60,6 +71,7 @@ export async function GET(request: NextRequest) {
 
   // audience_summary RETURNS TABLE, so PostgREST hands back a one-row array.
   const audience = audienceRows?.[0];
+  const sourceTotals = sourceRows?.[0];
 
   return NextResponse.json({
     totalViews: Number(audience?.total_views ?? 0),
@@ -72,6 +84,17 @@ export async function GET(request: NextRequest) {
       untrackedViews: Number(audience?.untracked_views ?? 0),
       activeUsers: Number(audience?.active_users ?? 0),
       trackingSince: audience?.tracking_since ?? null,
+    },
+    traffic: {
+      visits: Number(sourceTotals?.visits ?? 0),
+      attributedViews: Number(sourceTotals?.attributed_views ?? 0),
+      // Views from before migration 027 — no source was recorded, so they are
+      // reported on their own instead of inflating "direct".
+      untrackedViews: Number(sourceTotals?.untracked_views ?? 0),
+      trackingSince: sourceTotals?.tracking_since ?? null,
+      sources: trafficSources ?? [],
+      campaigns: trafficCampaigns ?? [],
+      referrers: topReferrers ?? [],
     },
     topPages: topPages ?? [],
     topTournaments: topTournaments ?? [],

@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 
 export default function DatenschutzPage() {
   return (
-    <article className="max-w-2xl mx-auto py-8 text-sm leading-relaxed text-gray-700 dark:text-gray-300 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:mb-6 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-6 [&_h2]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-1 [&_a]:text-accent [&_a]:underline hover:[&_a]:no-underline">
+    <article className="max-w-2xl mx-auto py-8 text-sm leading-relaxed text-gray-700 dark:text-gray-300 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:mb-6 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-6 [&_h2]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-1 [&_a]:text-accent [&_a]:underline hover:[&_a]:no-underline [&_code]:font-mono [&_code]:text-xs [&_code]:bg-gray-100 dark:[&_code]:bg-gray-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded">
       <h1>Datenschutzerklärung</h1>
 
       <p className="text-sm text-gray-500">
-        Stand: August 2026
+        Stand: September 2026
       </p>
 
       <h2>1. Verantwortlicher</h2>
@@ -97,8 +97,22 @@ export default function DatenschutzPage() {
         keiner Person zuordnen.
       </p>
       <p>
-        Zweck: Wir wollen erkennen, welche Turniere und Clubs gefragt sind und ob angemeldete
-        Nutzer die Plattform tatsächlich verwenden. Die Auswertung erfolgt ausschließlich intern
+        Ebenfalls gespeichert wird, <strong>wie du zu uns gekommen bist</strong> – also eine
+        Herkunfts&shy;bezeichnung wie „instagram“, „google“ oder „direkt“, die dazugehörige
+        Kategorie („Social Media“, „Suchmaschine“) und – falls der Link damit versehen war – der
+        Kampagnenname (z.&nbsp;B. „bio“). Diese Angaben leiten wir ab aus den
+        <code>utm_</code>-Parametern des angeklickten Links, der verweisenden Domain (nur die
+        Domain, nicht die vollständige Adresse) oder – wenn beides fehlt – daraus, dass die Seite
+        im integrierten Browser einer App geöffnet wurde. Gespeichert wird jeweils nur das
+        Ergebnis, also eine kurze Bezeichnung wie „instagram“. Damit ein Besuch nicht bei jedem
+        Seitenwechsel neu gezählt wird, merkt sich dein Browser diese Bezeichnung für die Dauer
+        der Sitzung im <strong>Session Storage</strong> (Schlüssel <code>thepin_src</code>). Der
+        Eintrag enthält keine Kennung und wird gelöscht, sobald du den Tab schließt.
+      </p>
+      <p>
+        Zweck: Wir wollen erkennen, welche Turniere und Clubs gefragt sind, ob angemeldete
+        Nutzer die Plattform tatsächlich verwenden und über welche Kanäle neue Besucher zu uns
+        finden. Die Auswertung erfolgt ausschließlich intern
         und wird nicht an Dritte weitergegeben. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO
         (berechtigtes Interesse an einer statistischen Auswertung und Verbesserung des Angebots).
         Löschst du dein Konto, wird die Nutzer-ID aus den Aufrufdaten entfernt; die verbleibenden

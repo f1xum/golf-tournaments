@@ -80,9 +80,16 @@ not a bug; it means the remaining clubs are on something else.
 python scripts/run_club_pdf_calendars.py
 ```
 
-Read [pdf-calendars.md](pdf-calendars.md) first. Verify a sample of the output
-against the source PDFs before trusting it — every single date bug in this
-pipeline looked completely fine in the logs.
+Read [pdf-calendars.md](pdf-calendars.md) first.
+
+Then **verify every club's output against its source PDF** — not a sample, in
+Bavaria a spot-check of all of them found a third of the filled clubs had
+completely wrong dates from an unrecognised layout, and every one looked fine in
+the run log. Cheap check: pull each club's stored dates and confirm they spread
+across the season the way the PDF does; a club whose tournaments all collapse
+into one or two months is almost certainly mis-parsed. Delete and re-import
+rather than leaving wrong dates live — a tournament on the wrong day is worse
+than none.
 
 ### 5. Report what is left, by reason
 

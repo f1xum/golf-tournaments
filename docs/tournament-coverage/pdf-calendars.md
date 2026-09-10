@@ -51,23 +51,40 @@ grid rows parsed but had no month to attach to, and MGC silently produced zero.
 Fix: an explicit `MONAT` label wins anywhere in the page; without one, only the
 top few lines are searched.
 
-The through-line: **every bug was invisible in the run log and only showed up
-when output was compared against the source PDF.** Verifying a sample against
-the actual PDF is not optional.
+**A whole-year grid with months as columns.** A fifth layout, missed until a
+spot-check caught it: Königsbrunn and Waldegg print the entire year on one page,
+one column per month, one row per day. The row parser read each row left to
+right and filed every column's entry under the first month — Königsbrunn came
+out all-January, Waldegg all-April. This passed review because the counts looked
+fine (105, 42); only lining the stored dates up against the PDF exposed it. Fix:
+when the header names three or more months in a row (`month_column_headers`),
+read the page as a grid — month from a word's x-position against the header
+columns, day from the cell — instead of row by row. Cells that carry their own
+`DD.MM.` (Neumarkt does) are parsed normally first; the column month is only the
+fallback.
+
+The through-line, said five times over: **every one of these was invisible in
+the run log and only showed up when output was compared against the source
+PDF.** The counts always looked healthy. Verifying a sample of actual dates
+against the actual PDF is not optional — it is the only thing that caught any of
+these.
 
 ## Formats seen in Bavaria
 
-Surveyed across 34 club PDFs:
+Surveyed across 34 club PDFs, then corrected by the spot-check:
 
-| rows on the page look like        | count | how the date resolves        |
-|-----------------------------------|-------|------------------------------|
-| `18.04. Tiger Rabbit`             | 13    | day+month, year from title   |
-| `1 Mi  Angolfen` (month grid)     | 6     | day on row, month in header  |
-| `16. Mai 17:00 Herrengolf`        | 6     | day + month name             |
-| `SO 15.03.2026 Clean up`          | 3     | full date on the row         |
+| rows on the page look like            | how the date resolves          |
+|---------------------------------------|--------------------------------|
+| `18.04. Tiger Rabbit`                 | day+month, year from title     |
+| `1 Mi  Angolfen` (single-month grid)  | day on row, month in header    |
+| `16. Mai 17:00 Herrengolf`            | day + month name               |
+| `SO 15.03.2026 Clean up`              | full date on the row           |
+| full-year grid, one column per month  | month from column x, day from cell |
 
-`parse_row` tries these most-specific-first. Add new formats there, with a test
-built from a real row string.
+The single-page format detection (`month_column_headers` vs `detect_month` vs a
+plain dated row) lives in `extract_dated_rows`. Row-level formats are tried
+most-specific-first in `parse_row`. Add a new format to whichever applies, with
+a test built from a real row string, and re-run the spot-check.
 
 ## Known limits (not yet solved)
 
