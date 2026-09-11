@@ -2,18 +2,42 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3, Eye, TrendingUp, Trophy, Building2, Loader2, ChevronDown, ChevronUp, Globe, Users, Share2, ExternalLink } from 'lucide-react';
-
-/* Audience segments. Validated for colour-blind separation against a white
-   surface — do not swap these for arbitrary greens/blues. */
-const MEMBER_COLOR = '#4338ca';
-const VISITOR_COLOR = '#059669';
-const UNTRACKED_COLOR = '#d1d5db';
+import {
+  BarChart3,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Eye,
+  Globe,
+  Loader2,
+  Share2,
+  TrendingUp,
+  Trophy,
+  Users,
+} from 'lucide-react';
+import { RangeSelection, rangeQuery } from './range-picker';
+import {
+  DayAxis,
+  EmptyRow,
+  LegendKey,
+  MEMBER_COLOR,
+  SectionTitle,
+  StatCard,
+  UNTRACKED_COLOR,
+  VISITOR_COLOR,
+  ViewBar,
+  formatDate,
+  formatDay,
+  formatNumber,
+  formatWeekday,
+} from './shared';
 
 interface TopPage {
   path: string;
   views: number;
   member_views: number;
+  visitors: number;
 }
 
 interface TopTournament {
@@ -41,6 +65,7 @@ interface DailyView {
   visitor_views: number;
   untracked_views: number;
   active_users: number;
+  visits: number;
 }
 
 interface Audience {
@@ -80,35 +105,45 @@ interface Traffic {
 }
 
 interface AnalyticsData {
+  range: { key: string; from: string; to: string; days: number };
   totalViews: number;
-  todayViews: number;
+  previous: { totalViews: number; memberViews: number; activeUsers: number; visits: number };
   audience: Audience;
   traffic: Traffic;
   topPages: TopPage[];
   topTournaments: TopTournament[];
   topClubs: TopClub[];
   dailyViews: DailyView[];
-  range: string;
 }
 
-const RANGES = [
-  { value: '7d', label: '7 Tage' },
-  { value: '30d', label: '30 Tage' },
-  { value: '90d', label: '90 Tage' },
-];
-
-export default function AdminDashboard() {
+export default function TrafficDashboard({
+  selection,
+  onRangeMeta,
+}: {
+  selection: RangeSelection;
+  onRangeMeta: (meta: { from: string; to: string; days: number }) => void;
+}) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState('7d');
+  const query = rangeQuery(selection);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    fetch(`/api/admin/analytics?range=${range}`)
+    fetch(`/api/admin/analytics?${query}`)
       .then((r) => r.json())
-      .then((d) => setData(d))
-      .finally(() => setLoading(false));
-  }, [range]);
+      .then((d: AnalyticsData) => {
+        if (cancelled) return;
+        setData(d);
+        if (d.range) onRangeMeta(d.range);
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+    // onRangeMeta is stable; including it would refetch on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   if (loading && !data) {
     return (
@@ -117,15 +152,12 @@ export default function AdminDashboard() {
       </div>
     );
   }
-
   if (!data) return null;
 
-  // Fill missing days in the range so the chart always shows every day
-  const daysBack = range === '30d' ? 30 : range === '90d' ? 90 : 7;
-  const filledDaily = fillDays(data.dailyViews, daysBack);
-  const maxDaily = Math.max(...filledDaily.map((d) => d.views), 1);
-
-  // Categorize pages for the breakdown
+  // The server emits one row per day in the range, empty days included, so
+  // the chart no longer has to pad anything.
+  const daily = data.dailyViews;
+  const maxDaily = Math.max(...daily.map((d) => d.views), 1);
   const breakdown = categorizePages(data.topPages);
 
   // Rows from before migration 022 carry no identity, so they get their own
@@ -134,32 +166,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Range selector */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
-        {RANGES.map((r) => (
-          <button
-            key={r.value}
-            onClick={() => setRange(r.value)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              range === r.value
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {r.label}
-          </button>
-        ))}
-        {loading && <Loader2 className="animate-spin text-gray-400 ml-2 self-center" size={14} />}
-      </div>
-
-      {/* Overview cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard icon={Eye} label="Heute" value={data.todayViews} />
-        <StatCard icon={TrendingUp} label={`Gesamt (${RANGES.find((r) => r.value === range)?.label})`} value={data.totalViews} />
+        <StatCard
+          icon={TrendingUp}
+          label="Seitenaufrufe"
+          value={data.totalViews}
+          previous={data.previous.totalViews}
+        />
+        <StatCard
+          icon={Eye}
+          label="Besuche"
+          value={data.traffic.visits}
+          previous={data.previous.visits}
+          hint={
+            data.traffic.visits > 0
+              ? `${formatNumber(data.totalViews / data.traffic.visits, 1)} Seiten / Besuch`
+              : undefined
+          }
+        />
         <StatCard
           icon={Users}
           label="Aktive Nutzer"
           value={data.audience.activeUsers}
+          previous={data.previous.activeUsers}
           hint={
             data.audience.activeUsers > 0
               ? `${formatNumber(data.audience.memberViews / data.audience.activeUsers, 1)} Seiten / Nutzer`
@@ -169,31 +198,26 @@ export default function AdminDashboard() {
         <StatCard
           icon={BarChart3}
           label="Ø / Tag"
-          value={filledDaily.length > 0 ? Math.round(data.totalViews / filledDaily.length) : 0}
+          value={daily.length > 0 ? Math.round(data.totalViews / daily.length) : 0}
         />
         <StatCard
           icon={TrendingUp}
           label="Peak Tag"
-          value={Math.max(...filledDaily.map((d) => d.views))}
+          value={Math.max(...daily.map((d) => d.views), 0)}
         />
       </div>
 
-      {/* Two-column layout for chart + breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Daily chart — takes 2/3 */}
         <section className="lg:col-span-2 flex flex-col">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Seitenaufrufe pro Tag</h2>
+          <SectionTitle>Seitenaufrufe pro Tag</SectionTitle>
           <div className="bg-white border border-gray-200 rounded-lg p-4 flex-1 flex flex-col">
-            <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-xs text-gray-500">
               <LegendKey color={MEMBER_COLOR} label="Eingeloggt" />
               <LegendKey color={VISITOR_COLOR} label="Besucher" />
               {hasUntracked && <LegendKey color={UNTRACKED_COLOR} label="ohne Aufschlüsselung" />}
             </div>
             <div className="flex items-end gap-[2px] flex-1 min-h-44">
-              {filledDaily.map((d) => {
-                const date = new Date(d.day);
-                const label = formatDay(d.day);
-                const weekday = date.toLocaleDateString('de-DE', { weekday: 'short' });
+              {daily.map((d, i) => {
                 // Stack top-down: members, then visitors, then the pre-cutoff
                 // rows we cannot attribute. The three always sum to d.views.
                 const segments = [
@@ -201,26 +225,38 @@ export default function AdminDashboard() {
                   { key: 'visitor', value: d.visitor_views, color: VISITOR_COLOR },
                   { key: 'untracked', value: d.untracked_views, color: UNTRACKED_COLOR },
                 ].filter((s) => s.value > 0);
+
+                const position =
+                  i < daily.length / 6
+                    ? 'left-0'
+                    : i > daily.length - daily.length / 6
+                      ? 'right-0'
+                      : 'left-1/2 -translate-x-1/2';
+
                 return (
                   <div
                     key={d.day}
                     className="flex-1 group relative flex flex-col items-center justify-end h-full gap-[2px]"
                   >
-                    <div className="absolute -top-14 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10 text-left">
-                      <div className="font-medium mb-0.5">{weekday} {label}: {d.views} Aufrufe</div>
+                    <div
+                      className={`absolute bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10 text-left pointer-events-none ${position}`}
+                    >
+                      <div className="font-medium mb-0.5">
+                        {formatWeekday(d.day)} {formatDay(d.day)}: {d.views} Aufrufe
+                      </div>
                       <div>Eingeloggt: {d.member_views} ({d.active_users} Nutzer)</div>
                       <div>Besucher: {d.visitor_views}</div>
                       {d.untracked_views > 0 && <div>Ohne Aufschlüsselung: {d.untracked_views}</div>}
                     </div>
                     {segments.length === 0 ? (
-                      <div className="w-full bg-gray-100 rounded-t-sm min-h-[2px]" style={{ height: '2%' }} />
+                      <div className="w-full bg-gray-100 rounded-t-sm" style={{ height: '2px' }} />
                     ) : (
-                      segments.map((s, i) => (
+                      segments.map((s, si) => (
                         <div
                           key={s.key}
-                          className={`w-full min-h-[2px] transition-all ${i === 0 ? 'rounded-t-sm' : ''}`}
+                          className={`w-full min-h-[3px] ${si === 0 ? 'rounded-t-[3px]' : ''}`}
                           style={{
-                            height: `${Math.max((s.value / maxDaily) * 100, 1)}%`,
+                            height: `${(s.value / maxDaily) * 100}%`,
                             backgroundColor: s.color,
                           }}
                         />
@@ -230,31 +266,18 @@ export default function AdminDashboard() {
                 );
               })}
             </div>
-            {/* X-axis labels */}
-            <div className="flex mt-2 text-[10px] text-gray-400">
-              {filledDaily.map((d, i) => {
-                // Show label every N days depending on range
-                const step = daysBack <= 7 ? 1 : daysBack <= 30 ? 5 : 10;
-                const show = i === 0 || i === filledDaily.length - 1 || i % step === 0;
-                return (
-                  <div key={d.day} className="flex-1 text-center">
-                    {show ? formatDay(d.day) : ''}
-                  </div>
-                );
-              })}
-            </div>
+            <DayAxis days={daily.map((d) => d.day)} />
           </div>
         </section>
 
-        {/* Audience split + page category breakdown — takes 1/3 */}
         <div className="space-y-4">
           <section>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Publikum</h2>
+            <SectionTitle>Publikum</SectionTitle>
             <AudiencePanel audience={data.audience} />
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Seitentypen</h2>
+            <SectionTitle>Seitentypen</SectionTitle>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="space-y-3">
                 {breakdown.map((cat) => (
@@ -274,16 +297,15 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+                {breakdown.length === 0 && <p className="text-sm text-gray-400">Noch keine Daten</p>}
               </div>
             </div>
           </section>
         </div>
       </div>
 
-      {/* Traffic attribution — which channel actually sends people */}
       <TrafficSection traffic={data.traffic} />
 
-      {/* Two-column: Top Tournaments + Top Clubs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ExpandableTable
           title="Top Turniere"
@@ -334,37 +356,41 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Top Pages — full width at bottom */}
       <section>
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-          <Globe size={14} className="text-accent" />
-          Top Seiten
-        </h2>
+        <SectionTitle icon={<Globe size={14} className="text-accent" />}>Top Seiten</SectionTitle>
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[420px]">
             <thead>
               <tr className="border-b border-gray-100 text-left text-gray-500">
                 <th className="px-4 py-2 font-medium">Seite</th>
+                <th className="px-4 py-2 font-medium text-right w-24">Nutzer</th>
                 <th className="px-4 py-2 font-medium text-right w-32">Aufrufe</th>
               </tr>
             </thead>
             <tbody>
-              {data.topPages.slice(0, 10).map((p, i) => (
+              {data.topPages.slice(0, 12).map((p, i) => (
                 <tr key={p.path} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
                   <td className="px-4 py-2 font-mono text-xs text-gray-700 truncate max-w-[400px]">
                     {p.path}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums text-gray-500 text-xs">
+                    {p.visitors > 0 ? p.visitors : '–'}
                   </td>
                   <td className="px-4 py-2 text-right">
                     <ViewBar value={p.views} memberValue={p.member_views} max={data.topPages[0]?.views ?? 1} />
                   </td>
                 </tr>
               ))}
-              {data.topPages.length === 0 && (
-                <tr><td colSpan={2} className="px-4 py-6 text-center text-gray-400">Noch keine Daten</td></tr>
-              )}
+              {data.topPages.length === 0 && <EmptyRow cols={3}>Noch keine Daten</EmptyRow>}
             </tbody>
           </table>
+          </div>
         </div>
+        <p className="mt-2 text-[11px] text-gray-400">
+          „Nutzer“ zählt verschiedene eingeloggte Personen — anonyme Besucher lassen sich nicht
+          auseinanderhalten.
+        </p>
       </section>
     </div>
   );
@@ -409,7 +435,7 @@ function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source;
 }
 
-/** "3,2" pages per visit, or a dash when there is no visit to divide by. */
+/** "3,2 Seiten/Besuch", or a dash when there is no visit to divide by. */
 function perVisit(views: number, visits: number): string {
   if (visits <= 0) return '–';
   return `${formatNumber(views / visits, 1)} Seiten/Besuch`;
@@ -423,23 +449,26 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
 
   return (
     <section>
-      <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-gray-700 mb-3">
-        <Share2 size={14} className="text-accent" />
+      <SectionTitle
+        icon={<Share2 size={14} className="text-accent" />}
+        right={
+          <>
+            <LegendKey color={VISITOR_COLOR} label="Besucher" />
+            <LegendKey color={MEMBER_COLOR} label="Eingeloggt" />
+          </>
+        }
+      >
         Woher kommen die Besucher
         <span className="text-gray-400 font-normal">
-          ({traffic.visits.toLocaleString('de-DE')} Besuche)
+          ({formatNumber(traffic.visits)} Besuche)
         </span>
-        <span className="ml-auto flex items-center gap-3 text-xs font-normal text-gray-500">
-          <LegendKey color={VISITOR_COLOR} label="Besucher" />
-          <LegendKey color={MEMBER_COLOR} label="Eingeloggt" />
-        </span>
-      </h2>
+      </SectionTitle>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          {/* Sources, ranked by views — the headline answer */}
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[420px]">
               <thead>
                 <tr className="border-b border-gray-100 text-left text-gray-500">
                   <th className="px-4 py-2 font-medium">Quelle</th>
@@ -459,7 +488,7 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-right font-medium text-gray-900 tabular-nums">
-                      {s.visits.toLocaleString('de-DE')}
+                      {formatNumber(s.visits)}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <ViewBar value={s.views} memberValue={s.member_views} max={maxSourceViews} />
@@ -467,25 +496,24 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
                   </tr>
                 ))}
                 {sources.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                      Noch keine Quellen erfasst – Instagram-Link:{' '}
-                      <span className="font-mono text-gray-500">thepin.app/ig</span>
-                    </td>
-                  </tr>
+                  <EmptyRow cols={3}>
+                    Noch keine Quellen erfasst – Instagram-Link:{' '}
+                    <span className="font-mono text-gray-500">thepin.app/ig</span>
+                  </EmptyRow>
                 )}
               </tbody>
             </table>
+            </div>
           </div>
 
-          {/* Campaign level: which placement inside a source did the work */}
           {campaigns.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                 Kampagnen / Platzierungen
               </h3>
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[420px]">
                   <tbody>
                     {campaigns.map((c, i) => (
                       <tr
@@ -498,7 +526,7 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
                           <span className="font-mono text-xs text-gray-600">{c.campaign}</span>
                         </td>
                         <td className="px-4 py-2 text-right w-24 tabular-nums text-gray-900">
-                          {c.visits.toLocaleString('de-DE')}
+                          {formatNumber(c.visits)}
                         </td>
                         <td className="px-4 py-2 text-right w-32">
                           <ViewBar
@@ -511,12 +539,12 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Raw referring hosts — how an untagged link from elsewhere shows up */}
         <div>
           <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
             <ExternalLink size={12} />
@@ -535,10 +563,8 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
                       {r.referrer_host}
                     </span>
                     <span className="tabular-nums text-gray-900 shrink-0">
-                      {r.visits.toLocaleString('de-DE')}
-                      <span className="text-gray-400 text-xs ml-1">
-                        / {r.views.toLocaleString('de-DE')}
-                      </span>
+                      {formatNumber(r.visits)}
+                      <span className="text-gray-400 text-xs ml-1">/ {formatNumber(r.views)}</span>
                     </span>
                   </li>
                 ))}
@@ -554,7 +580,7 @@ function TrafficSection({ traffic }: { traffic: Traffic | undefined }) {
 
       {traffic.untrackedViews > 0 && (
         <p className="mt-2 text-[11px] text-gray-400">
-          {traffic.untrackedViews.toLocaleString('de-DE')} Aufrufe stammen aus der Zeit vor der
+          {formatNumber(traffic.untrackedViews)} Aufrufe stammen aus der Zeit vor der
           Quellen-Erfassung{traffic.trackingSince ? ` (${formatDate(traffic.trackingSince)})` : ''}{' '}
           und haben keine Quelle.
         </p>
@@ -586,20 +612,19 @@ function ExpandableTable<T>({
 
   return (
     <section>
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-        {icon}
+      <SectionTitle icon={icon}>
         {title}
         <span className="text-gray-400 font-normal">({items.length})</span>
-      </h2>
+      </SectionTitle>
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <tbody>
-            {visible.map((item, i) => renderRow(item, i))}
-            {items.length === 0 && (
-              <tr><td colSpan={cols} className="px-4 py-6 text-center text-gray-400">{emptyText}</td></tr>
-            )}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[360px]">
+            <tbody>
+              {visible.map((item, i) => renderRow(item, i))}
+              {items.length === 0 && <EmptyRow cols={cols}>{emptyText}</EmptyRow>}
+            </tbody>
+          </table>
+        </div>
         {hasMore && (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -617,32 +642,8 @@ function ExpandableTable<T>({
   );
 }
 
-/* ─── Helper Components ─── */
+/* ─── Audience split ─── */
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof Eye;
-  label: string;
-  value: number;
-  hint?: string;
-}) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon size={14} className="text-gray-400" />
-        <span className="text-xs text-gray-500">{label}</span>
-      </div>
-      <div className="text-2xl font-bold text-gray-900">{value.toLocaleString('de-DE')}</div>
-      {hint && <div className="text-[11px] text-gray-400 mt-0.5">{hint}</div>}
-    </div>
-  );
-}
-
-/** Visitor/member split for the range, plus how many people that is. */
 function AudiencePanel({ audience }: { audience: Audience }) {
   const { memberViews, visitorViews, untrackedViews, activeUsers, trackingSince } = audience;
   const attributed = memberViews + visitorViews;
@@ -681,7 +682,7 @@ function AudiencePanel({ audience }: { audience: Audience }) {
                   {r.label}
                 </span>
                 <span className="text-gray-900 tabular-nums">
-                  <span className="font-medium">{r.value.toLocaleString('de-DE')}</span>
+                  <span className="font-medium">{formatNumber(r.value)}</span>
                   <span className="text-gray-400 text-xs ml-1.5">
                     {formatNumber((r.value / attributed) * 100, 1)} %
                   </span>
@@ -692,16 +693,14 @@ function AudiencePanel({ audience }: { audience: Audience }) {
 
           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
             <span className="text-gray-600">Aktive Nutzer</span>
-            <span className="font-medium text-gray-900 tabular-nums">
-              {activeUsers.toLocaleString('de-DE')}
-            </span>
+            <span className="font-medium text-gray-900 tabular-nums">{formatNumber(activeUsers)}</span>
           </div>
         </>
       )}
 
       {untrackedViews > 0 && (
         <p className="mt-3 pt-3 border-t border-gray-100 text-[11px] text-gray-400 leading-relaxed">
-          {untrackedViews.toLocaleString('de-DE')} Aufrufe stammen aus der Zeit vor der
+          {formatNumber(untrackedViews)} Aufrufe stammen aus der Zeit vor der
           Umstellung{trackingSince ? ` (${formatDate(trackingSince)})` : ''} und lassen sich
           nicht zuordnen.
         </p>
@@ -710,85 +709,7 @@ function AudiencePanel({ audience }: { audience: Audience }) {
   );
 }
 
-function LegendKey({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  );
-}
-
-function ViewBar({ value, memberValue, max }: { value: number; memberValue: number; max: number }) {
-  const total = (value / max) * 100;
-  const memberShare = value > 0 ? memberValue / value : 0;
-  return (
-    <div
-      className="flex items-center gap-2 justify-end"
-      title={`${value} Aufrufe · davon ${memberValue} eingeloggt`}
-    >
-      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden hidden sm:flex gap-[1px]">
-        <div
-          className="h-full"
-          style={{ width: `${total * (1 - memberShare)}%`, backgroundColor: VISITOR_COLOR }}
-        />
-        <div
-          className="h-full"
-          style={{ width: `${total * memberShare}%`, backgroundColor: MEMBER_COLOR }}
-        />
-      </div>
-      <span className="font-medium text-gray-900 tabular-nums">{value}</span>
-    </div>
-  );
-}
-
 /* ─── Helpers ─── */
-
-function formatDay(dateStr: string | undefined): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return `${d.getDate()}.${(d.getMonth() + 1).toString().padStart(2, '0')}.`;
-}
-
-function formatNumber(value: number, decimals = 0): string {
-  return value.toLocaleString('de-DE', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-/** Fill missing days so chart always has one bar per day in the range */
-function fillDays(dailyViews: DailyView[], daysBack: number): DailyView[] {
-  const map = new Map(dailyViews.map((d) => [d.day, d]));
-  const result: DailyView[] = [];
-  const now = new Date();
-
-  for (let i = daysBack - 1; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    const key = date.toISOString().split('T')[0];
-    result.push(
-      map.get(key) ?? {
-        day: key,
-        views: 0,
-        member_views: 0,
-        visitor_views: 0,
-        untracked_views: 0,
-        active_users: 0,
-      }
-    );
-  }
-
-  return result;
-}
 
 /** Group page views by category for the breakdown chart */
 function categorizePages(pages: TopPage[]) {
