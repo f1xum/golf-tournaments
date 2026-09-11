@@ -11,6 +11,24 @@
   --color-prize-text: #92740c;
 }
 
+/* ============================================
+   Analytics chart colours (admin dashboard)
+   ============================================
+   Two categorical series — signed-in people and anonymous visitors — plus a
+   neutral for views that predate a tracking cutoff and belong to neither.
+
+   These are CSS variables rather than literals in the component because the
+   dark card is #222222, and the light indigo scores 2.0:1 against it: the bars
+   were there but effectively invisible in dark mode. Both pairs are validated
+   for lightness band, chroma, colour-blind separation and contrast against
+   their own surface — light against #ffffff, dark against the #222222 card.
+   Re-validate before changing either; they are not interchangeable swatches. */
+:root {
+  --viz-member: #4338ca;
+  --viz-visitor: #059669;
+  --viz-untracked: #d1d5db;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   background: #fafafa;
@@ -29,6 +47,11 @@ html.dark body {
 }
 
 html.dark {
+  /* Same two series, re-stepped for the dark card — not an automatic flip. */
+  --viz-member: #6272e9;
+  --viz-visitor: #22a56a;
+  --viz-untracked: #4a4a4a;
+
   --color-accent: #4ead6e;
   --color-accent-light: #1a3329;
   --color-weekend: #1e2422;

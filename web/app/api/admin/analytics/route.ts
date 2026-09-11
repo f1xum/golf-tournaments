@@ -1,81 +1,85 @@
-import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { requireAdmin } from '@/lib/admin-auth';
+import { resolveRange } from '@/lib/analytics-range';
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Traffic side of the admin dashboard: how many views, from where, to what.
+ * The people side lives in ./users.
+ *
+ * Ranges arrive as a preset key (`range`) or as `from`/`to` Berlin days, and
+ * are resolved server-side so the database and the UI cannot disagree about
+ * where a day starts. Every figure is also fetched for the equally long period
+ * before it, which is what the trend arrows compare against.
+ */
 export async function GET(request: NextRequest) {
-  const session = await createClient();
-
-  // Auth check
-  const { data: { user } } = await session.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-  const { data: profile } = await session
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   // page_views is RLS-locked to the service role; the admin check above is the
   // only gate on this data.
   const supabase = createServiceClient();
 
-  const range = request.nextUrl.searchParams.get('range') || '7d';
-  const daysBack = range === '30d' ? 30 : range === '90d' ? 90 : 7;
-  const since = new Date(Date.now() - daysBack * 86400000).toISOString();
+  const params = request.nextUrl.searchParams;
+  const range = resolveRange(params.get('range'), params.get('from'), params.get('to'));
 
-  // Run all queries in parallel
+  const since = range.since.toISOString();
+  const until = range.until.toISOString();
+  const rangeArgs = { since_date: since, until_date: until };
+  const prevArgs = {
+    since_date: range.prevSince.toISOString(),
+    until_date: range.prevUntil.toISOString(),
+  };
+
   const [
     { data: audienceRows },
+    { data: prevAudienceRows },
     { data: topPages },
     { data: topTournaments },
     { data: topClubs },
     { data: dailyViews },
     { data: sourceRows },
+    { data: prevSourceRows },
     { data: trafficSources },
     { data: trafficCampaigns },
     { data: topReferrers },
-    { count: todayViews },
   ] = await Promise.all([
-    // Headline counts for the range, split into members vs visitors
-    supabase.rpc('audience_summary', { since_date: since }),
-
-    // Top pages overall
-    supabase.rpc('top_pages', { since_date: since, lim: 20 }),
-
-    // Top tournament pages
-    supabase.rpc('top_tournament_pages', { since_date: since, lim: 20 }),
-
-    // Top club pages
-    supabase.rpc('top_club_pages', { since_date: since, lim: 20 }),
-
-    // Daily view counts
-    supabase.rpc('daily_view_counts', { since_date: since }),
+    supabase.rpc('audience_summary', rangeArgs),
+    supabase.rpc('audience_summary', prevArgs),
+    supabase.rpc('top_pages', { ...rangeArgs, lim: 25 }),
+    supabase.rpc('top_tournament_pages', { ...rangeArgs, lim: 25 }),
+    supabase.rpc('top_club_pages', { ...rangeArgs, lim: 25 }),
+    supabase.rpc('daily_view_counts', rangeArgs),
 
     // Traffic attribution (migration 027): totals, the sources themselves, the
     // campaign/placement level below them, and the raw referring hosts.
-    supabase.rpc('traffic_source_summary', { since_date: since }),
-    supabase.rpc('traffic_sources', { since_date: since, lim: 12 }),
-    supabase.rpc('traffic_campaigns', { since_date: since, lim: 20 }),
-    supabase.rpc('top_referrers', { since_date: since, lim: 10 }),
-
-    // Today's views
-    supabase
-      .from('page_views')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    supabase.rpc('traffic_source_summary', rangeArgs),
+    supabase.rpc('traffic_source_summary', prevArgs),
+    supabase.rpc('traffic_sources', { ...rangeArgs, lim: 12 }),
+    supabase.rpc('traffic_campaigns', { ...rangeArgs, lim: 20 }),
+    supabase.rpc('top_referrers', { ...rangeArgs, lim: 10 }),
   ]);
 
-  // audience_summary RETURNS TABLE, so PostgREST hands back a one-row array.
+  // These RPCs RETURN TABLE, so PostgREST hands back a one-row array.
   const audience = audienceRows?.[0];
+  const prevAudience = prevAudienceRows?.[0];
   const sourceTotals = sourceRows?.[0];
+  const prevSourceTotals = prevSourceRows?.[0];
 
   return NextResponse.json({
+    range: {
+      key: range.key,
+      from: range.fromDay,
+      to: range.toDay,
+      days: range.days,
+    },
     totalViews: Number(audience?.total_views ?? 0),
-    todayViews: todayViews ?? 0,
+    previous: {
+      totalViews: Number(prevAudience?.total_views ?? 0),
+      memberViews: Number(prevAudience?.member_views ?? 0),
+      activeUsers: Number(prevAudience?.active_users ?? 0),
+      visits: Number(prevSourceTotals?.visits ?? 0),
+    },
     audience: {
       memberViews: Number(audience?.member_views ?? 0),
       visitorViews: Number(audience?.visitor_views ?? 0),
@@ -100,6 +104,5 @@ export async function GET(request: NextRequest) {
     topTournaments: topTournaments ?? [],
     topClubs: topClubs ?? [],
     dailyViews: dailyViews ?? [],
-    range,
   });
 }

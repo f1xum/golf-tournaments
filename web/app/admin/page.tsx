@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import AdminDashboard from './client';
+import AdminDashboard from './dashboard';
 
 export const metadata = {
   title: 'Admin Analytics',
@@ -24,7 +24,7 @@ export default async function AdminPage() {
   return (
     <div className="py-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-1">Analytics</h1>
-      <p className="text-gray-500 text-sm mb-6">Traffic & Engagement</p>
+      <p className="text-gray-500 text-sm mb-6">Traffic, Nutzer & Retention</p>
       <AdminDashboard />
     </div>
   );
