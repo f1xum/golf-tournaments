@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Tournament, GolfClub } from '@/lib/types';
 import { distanceKm } from '@/lib/utils';
 import { extractHoles } from '@/lib/tournament-utils';
-import { ScoringProfile } from '@/lib/recommendations';
+import { useViewer } from '@/lib/use-viewer';
 import TournamentFilters, { Filters, DEFAULT_FILTERS } from '@/components/tournament-filters';
 import { FORMAT_FILTER_SYNONYMS } from '@/lib/constants';
 import WeekCalendar from '@/components/week-calendar';
@@ -17,12 +17,6 @@ import { ChevronDown, Clock, Lock, Search, X } from 'lucide-react';
 
 interface Props {
   clubs: Record<string, GolfClub>;
-  homeClubCoords: [number, number] | null;
-  savedClubIds: string[];
-  savedTournamentIds: string[];
-  scoringProfile: ScoringProfile | null;
-  userId: string | null;
-  isLoggedIn: boolean;
 }
 
 function applyFilters(
@@ -119,9 +113,17 @@ function LoadingSkeleton() {
 
 const STATE_STORAGE_KEY = 'thepin-turniere-state';
 
-export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, savedTournamentIds, scoringProfile, userId, isLoggedIn }: Props) {
-  const savedTournamentIdSet = useMemo(() => new Set(savedTournamentIds), [savedTournamentIds]);
-  const savedClubIdSet = useMemo(() => new Set(savedClubIds), [savedClubIds]);
+export default function TurniereClient({ clubs }: Props) {
+  const { userId, savedClubIds, profile } = useViewer();
+  const isLoggedIn = !!userId;
+
+  // The home club's coordinates used to be resolved on the server; the clubs
+  // map is already here, so look them up locally instead.
+  const homeClubCoords = useMemo<[number, number] | null>(() => {
+    const hc = profile?.home_club_id ? clubs[profile.home_club_id] : null;
+    return hc?.latitude && hc?.longitude ? [hc.latitude, hc.longitude] : null;
+  }, [profile?.home_club_id, clubs]);
+
   const searchParams = useSearchParams();
   const clubParam = searchParams.get('club') ?? '';
   const queryClient = useQueryClient();
@@ -133,7 +135,11 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
     ]);
   };
 
-  const [view, setView] = useState<'calendar' | 'list'>(isLoggedIn ? 'calendar' : 'list');
+  // The page is prerendered before we know who is looking, so with no stored or
+  // clicked preference the view follows the viewer: the list while signed out or
+  // still resolving, the calendar once signed in.
+  const [viewPref, setViewPref] = useState<'calendar' | 'list' | null>(null);
+  const view = viewPref ?? (isLoggedIn ? 'calendar' : 'list');
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -191,7 +197,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
           });
         }
         if (typeof saved.search === 'string') setSearch(saved.search);
-        if (saved.view === 'calendar' || saved.view === 'list') setView(saved.view);
+        if (saved.view === 'calendar' || saved.view === 'list') setViewPref(saved.view);
         if (typeof saved.showPast === 'boolean') setShowPast(saved.showPast);
       }
     } catch {}
@@ -267,10 +273,10 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
           type="text"
           value={search}
           placeholder="Turnier oder Club suchen..."
-          onFocus={() => setView('list')}
+          onFocus={() => setViewPref('list')}
           onChange={(e) => {
             setSearch(e.target.value);
-            if (view !== 'list') setView('list');
+            if (view !== 'list') setViewPref('list');
           }}
           className="w-full pl-9 pr-9 py-2.5 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
         />
@@ -289,7 +295,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
         <button
           onClick={() => {
             if (isLoggedIn) {
-              setView('calendar');
+              setViewPref('calendar');
             } else {
               setShowLoginToast(true);
               if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -306,7 +312,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
           Kalender
         </button>
         <button
-          onClick={() => setView('list')}
+          onClick={() => setViewPref('list')}
           className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
             view === 'list'
               ? 'bg-white text-gray-900 shadow-sm'
@@ -365,7 +371,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
       ) : view === 'calendar' ? (
         <WeekCalendar tournaments={[...filteredUpcoming, ...filteredPast]} clubs={clubs} />
       ) : (
-        <TournamentList tournaments={filteredUpcoming} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} scoringProfile={scoringProfile} savedClubIds={savedClubIdSet} />
+        <TournamentList tournaments={filteredUpcoming} clubs={clubs} allowScoreSort />
       )}
 
       {/* Past tournaments toggle */}
@@ -398,7 +404,7 @@ export default function TurniereClient({ clubs, homeClubCoords, savedClubIds, sa
                 Turniere werden geladen...
               </div>
             ) : filteredPast.length > 0 ? (
-              <TournamentList tournaments={filteredPast} clubs={clubs} savedTournamentIds={savedTournamentIdSet} userId={userId} />
+              <TournamentList tournaments={filteredPast} clubs={clubs} />
             ) : (
               <div className="text-center py-8 text-sm text-gray-400">
                 Keine vergangenen Turniere gefunden

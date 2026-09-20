@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { todayISO } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 
@@ -39,7 +39,7 @@ function slim(t: any) {
 }
 
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const today = todayISO();
 
   // Fetch all upcoming tournaments sequentially to avoid rate limits

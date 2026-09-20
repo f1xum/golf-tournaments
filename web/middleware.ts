@@ -1,16 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Only refresh auth session on routes that need it
-const AUTH_ROUTES = ['/profil', '/benachrichtigungen', '/einstellungen', '/turniere', '/admin'];
-
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Skip auth refresh for public pages — massive perf win
-  const needsAuth = pathname === '/' || AUTH_ROUTES.some((r) => pathname.startsWith(r));
-  if (!needsAuth) return NextResponse.next();
-
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -39,8 +30,17 @@ export async function middleware(request: NextRequest) {
   return supabaseResponse;
 }
 
+// Only the routes that actually read the session on the server. The previous
+// matcher caught every request that was not a static asset — including the
+// public pages, /api/track and sitemap.xml — and each of those cost a function
+// invocation just to fall through. Public pages now resolve auth in the
+// browser, so they do not belong here.
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/profil/:path*',
+    '/benachrichtigungen/:path*',
+    '/einstellungen/:path*',
+    '/fuer-dich/:path*',
+    '/admin/:path*',
   ],
 };

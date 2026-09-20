@@ -1,14 +1,23 @@
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { GolfClub, Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import ClubDetailClient from './client';
 
-export const revalidate = 3600;
+// Crawlers walk every club URL, and each stale hit regenerates the page. Club
+// pages change rarely, so a day is plenty.
+export const revalidate = 86400;
+
+// No params at build time — these pages are generated on first request and then
+// cached for `revalidate`. Without this, Next treats the segment as fully
+// dynamic and re-renders it for every visitor and every crawler.
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data: club } = await supabase
     .from('golf_clubs')
     .select('name, city')
@@ -24,10 +33,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ClubDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const today = todayISO();
 
-  const [{ data: club }, { data: upcoming }, { data: past }, { data: { user } }] = await Promise.all([
+  const [{ data: club }, { data: upcoming }, { data: past }] = await Promise.all([
     supabase.from('golf_clubs').select('*').eq('id', id).single(),
     supabase
       .from('tournaments')
@@ -42,7 +51,6 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
       .lt('date_start', today)
       .order('date_start', { ascending: false })
       .limit(100),
-    supabase.auth.getUser(),
   ]);
 
   if (!club) notFound();
@@ -53,22 +61,11 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ id:
   // already indexed and the merge is not going to be undone.
   if (club.merged_into) permanentRedirect(`/clubs/${club.merged_into}`);
 
-  let savedTournamentIds: string[] = [];
-  if (user) {
-    const { data: savedTournaments } = await supabase
-      .from('saved_tournaments')
-      .select('tournament_id')
-      .eq('user_id', user.id);
-    savedTournamentIds = (savedTournaments ?? []).map((r) => r.tournament_id);
-  }
-
   return (
     <ClubDetailClient
       club={club as GolfClub}
       upcoming={(upcoming ?? []) as Tournament[]}
       past={(past ?? []) as Tournament[]}
-      userId={user?.id ?? null}
-      savedTournamentIds={savedTournamentIds}
     />
   );
 }

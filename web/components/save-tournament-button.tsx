@@ -1,22 +1,24 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useViewer, useSetTournamentSaved } from '@/lib/use-viewer';
 
 interface Props {
   tournamentId: string;
-  userId: string | null;
-  initialSaved: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export default function SaveTournamentButton({ tournamentId, userId, initialSaved, size = 'md' }: Props) {
-  const [saved, setSaved] = useState(initialSaved);
+export default function SaveTournamentButton({ tournamentId, size = 'md' }: Props) {
+  const { userId, savedTournamentIds } = useViewer();
+  const setTournamentSaved = useSetTournamentSaved();
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saved = savedTournamentIds.includes(tournamentId);
 
   useEffect(() => {
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
@@ -30,27 +32,34 @@ export default function SaveTournamentButton({ tournamentId, userId, initialSave
     const supabase = createClient();
     setLoading(true);
 
+    // Flip the cache first so the icon reacts immediately, and put it back if
+    // the write fails.
+    setTournamentSaved(tournamentId, !saved);
+
     if (saved) {
-      await supabase
+      const { error } = await supabase
         .from('saved_tournaments')
         .delete()
         .eq('user_id', userId)
         .eq('tournament_id', tournamentId);
-      setSaved(false);
-      setShowToast(false);
+      if (error) setTournamentSaved(tournamentId, true);
+      else setShowToast(false);
     } else {
-      await supabase
+      const { error } = await supabase
         .from('saved_tournaments')
         .insert({ user_id: userId, tournament_id: tournamentId });
-      setSaved(true);
-      setShowToast(true);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setShowToast(false), 4000);
+      if (error) {
+        setTournamentSaved(tournamentId, false);
+      } else {
+        setShowToast(true);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setShowToast(false), 4000);
+      }
     }
     setLoading(false);
   }
 
-  // Don't show button if not logged in
+  // Don't show button if not logged in (or while the viewer is still loading)
   if (!userId) return null;
 
   const toast = showToast && (

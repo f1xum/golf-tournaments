@@ -8,13 +8,14 @@ import { MapPin, ChevronRight, Locate, Building2 } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import SaveClubButton from '@/components/save-club-button';
 import ClubFiltersPanel, { ClubFilters, DEFAULT_CLUB_FILTERS } from '@/components/club-filters';
+import { useViewer } from '@/lib/use-viewer';
 
 interface Props {
   clubs: GolfClub[];
-  savedClubIds: string[];
 }
 
-export default function ClubsClient({ clubs, savedClubIds }: Props) {
+export default function ClubsClient({ clubs }: Props) {
+  const { savedClubIds } = useViewer();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ClubFilters>(DEFAULT_CLUB_FILTERS);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);

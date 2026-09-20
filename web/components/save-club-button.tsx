@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Heart } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useViewer, useSetClubSaved } from '@/lib/use-viewer';
 
 interface Props {
   clubId: string;
@@ -11,32 +12,16 @@ interface Props {
 }
 
 export default function SaveClubButton({ clubId, size = 'md' }: Props) {
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  // One shared viewer query for the whole page — this used to be a `getUser()`
+  // plus a `saved_clubs` lookup per button, which on /clubs meant hundreds of
+  // requests from a single page load.
+  const { userId, savedClubIds } = useViewer();
+  const setClubSaved = useSetClubSaved();
+  const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      setUserId(user.id);
-      supabase
-        .from('saved_clubs')
-        .select('club_id')
-        .eq('user_id', user.id)
-        .eq('club_id', clubId)
-        .maybeSingle()
-        .then(({ data }) => {
-          setSaved(!!data);
-          setLoading(false);
-        });
-    });
-  }, [clubId]);
+  const saved = savedClubIds.includes(clubId);
 
   useEffect(() => {
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
@@ -49,6 +34,7 @@ export default function SaveClubButton({ clubId, size = 'md' }: Props) {
 
     const supabase = createClient();
     setLoading(true);
+    setClubSaved(clubId, !saved);
 
     if (saved) {
       const { error } = await supabase
@@ -56,16 +42,15 @@ export default function SaveClubButton({ clubId, size = 'md' }: Props) {
         .delete()
         .eq('user_id', userId)
         .eq('club_id', clubId);
-      if (!error) {
-        setSaved(false);
-        setShowToast(false);
-      }
+      if (error) setClubSaved(clubId, true);
+      else setShowToast(false);
     } else {
       const { error } = await supabase
         .from('saved_clubs')
         .insert({ user_id: userId, club_id: clubId });
-      if (!error) {
-        setSaved(true);
+      if (error) {
+        setClubSaved(clubId, false);
+      } else {
         setShowToast(true);
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setShowToast(false), 4000);
@@ -74,7 +59,8 @@ export default function SaveClubButton({ clubId, size = 'md' }: Props) {
     setLoading(false);
   }
 
-  if (!userId && !loading) return null;
+  // Nothing to toggle while the viewer is still loading, or when signed out.
+  if (!userId) return null;
 
   const toast = showToast && (
     <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[10001] animate-in fade-in slide-in-from-bottom-2">

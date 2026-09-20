@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { MapPin, ArrowRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { todayISO } from '@/lib/utils';
 import { BUNDESLAENDER } from '@/lib/regions';
 import { CITIES } from '@/lib/cities';
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GolfturniereIndexPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const today = todayISO();
 
   const clubsByBl = await loadClubsByBundesland(supabase);

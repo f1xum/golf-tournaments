@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { GolfClub } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import MapWrapper from './client';
@@ -6,10 +6,10 @@ import MapWrapper from './client';
 export const revalidate = 3600;
 
 async function getData() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const today = todayISO();
 
-  const [clubsRes, countsRes, userRes] = await Promise.all([
+  const [clubsRes, countsRes] = await Promise.all([
     supabase
       .from('golf_clubs')
       .select('id,name,city,region,latitude,longitude,website,merged_into')
@@ -21,7 +21,6 @@ async function getData() {
       .select('club_id')
       .gte('date_start', today)
       .not('club_id', 'is', null),
-    supabase.auth.getUser(),
   ]);
 
   const clubs = (clubsRes.data ?? []) as GolfClub[];
@@ -31,20 +30,11 @@ async function getData() {
     tournamentCounts[t.club_id] = (tournamentCounts[t.club_id] || 0) + 1;
   });
 
-  let savedClubIds: string[] = [];
-  if (userRes.data?.user) {
-    const { data: saved } = await supabase
-      .from('saved_clubs')
-      .select('club_id')
-      .eq('user_id', userRes.data.user.id);
-    savedClubIds = (saved ?? []).map((r) => r.club_id);
-  }
-
-  return { clubs, tournamentCounts, savedClubIds };
+  return { clubs, tournamentCounts };
 }
 
 export default async function KartePage() {
-  const { clubs, tournamentCounts, savedClubIds } = await getData();
+  const { clubs, tournamentCounts } = await getData();
 
   return (
     <div className="py-6">
@@ -53,7 +43,7 @@ export default async function KartePage() {
         {clubs.length} Clubs mit Standort
       </p>
       <div className="h-[calc(100vh-260px)] sm:h-[calc(100vh-200px)] min-h-[300px] max-h-[600px] sm:max-h-none rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-        <MapWrapper clubs={clubs} tournamentCounts={tournamentCounts} savedClubIds={savedClubIds} />
+        <MapWrapper clubs={clubs} tournamentCounts={tournamentCounts} />
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { extractHoles, formatMeldeschluss } from '@/lib/tournament-utils';
 import SaveTournamentButton from '@/components/save-tournament-button';
 import AddToCalendarButton from '@/components/add-to-calendar-button';
 import { formatTimeAgo } from '@/lib/time-ago';
+import { useViewer } from '@/lib/use-viewer';
 
 const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
   ssr: false,
@@ -26,12 +27,11 @@ const ClubMapMini = dynamic(() => import('@/components/club-map-mini'), {
 interface Props {
   tournament: Tournament;
   club: GolfClub | null;
-  isLoggedIn: boolean;
-  userId: string | null;
-  initialSaved: boolean;
 }
 
-export default function TurnierDetailClient({ tournament: t, club, isLoggedIn, userId, initialSaved }: Props) {
+export default function TurnierDetailClient({ tournament: t, club }: Props) {
+  const { userId } = useViewer();
+  const isLoggedIn = !!userId;
   const raw = t.raw_data || {};
   const formatLabel = formatToLabel(t.format);
   const [showLoginToast, setShowLoginToast] = useState(false);
@@ -79,7 +79,7 @@ export default function TurnierDetailClient({ tournament: t, club, isLoggedIn, u
       <div className="mb-6">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold leading-tight">{t.name}</h1>
-          <SaveTournamentButton tournamentId={t.id} userId={userId} initialSaved={initialSaved} size="md" />
+          <SaveTournamentButton tournamentId={t.id} size="md" />
         </div>
 
         {/* Club name link */}
@@ -288,7 +288,7 @@ export default function TurnierDetailClient({ tournament: t, club, isLoggedIn, u
 
           {/* Save button (for past tournaments or when no registration URL) */}
           {isPast && (
-            <SaveTournamentButton tournamentId={t.id} userId={userId} initialSaved={initialSaved} size="lg" />
+            <SaveTournamentButton tournamentId={t.id} size="lg" />
           )}
 
           {/* External link */}

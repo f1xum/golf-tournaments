@@ -48,13 +48,22 @@ export async function POST(request: NextRequest) {
     // cookie rides along and we can separate members from anonymous visitors.
     // A hiccup in the auth lookup must not cost us the page view, so we fall
     // back to NULL — the view is then counted as an anonymous one.
+    //
+    // Most traffic is signed out, and for those requests there is no session
+    // cookie to resolve — checking first skips an auth round trip on the
+    // large majority of page views.
     let userId: string | null = null;
-    try {
-      const session = await createClient();
-      const { data: { user } } = await session.auth.getUser();
-      userId = user?.id ?? null;
-    } catch {
-      // leave userId null
+    const hasSessionCookie = request.cookies
+      .getAll()
+      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
+    if (hasSessionCookie) {
+      try {
+        const session = await createClient();
+        const { data: { user } } = await session.auth.getUser();
+        userId = user?.id ?? null;
+      } catch {
+        // leave userId null
+      }
     }
 
     // Where did they come from (migration 027)? Worked out client-side in
