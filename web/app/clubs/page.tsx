@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { GolfClub } from '@/lib/types';
 import ClubsClient from './client';
 
@@ -12,35 +12,22 @@ export const metadata: Metadata = {
 };
 
 async function getData() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
-  const [{ data: clubs }, userRes] = await Promise.all([
-    supabase
-      .from('golf_clubs')
-      .select('*')
-      .order('name', { ascending: true }),
-    supabase.auth.getUser(),
-  ]);
-
-  let savedClubIds: string[] = [];
-  if (userRes.data?.user) {
-    const { data: saved } = await supabase
-      .from('saved_clubs')
-      .select('club_id')
-      .eq('user_id', userRes.data.user.id);
-    savedClubIds = (saved ?? []).map((r) => r.club_id);
-  }
+  const { data: clubs } = await supabase
+    .from('golf_clubs')
+    .select('*')
+    .order('name', { ascending: true });
 
   return {
     // Hide rows merged into another club — they are the same course listed
     // twice, and the duplicate is the copy with no tournaments on it.
     clubs: ((clubs ?? []) as GolfClub[]).filter((c) => !c.merged_into),
-    savedClubIds,
   };
 }
 
 export default async function ClubsPage() {
-  const { clubs, savedClubIds } = await getData();
+  const { clubs } = await getData();
 
   return (
     <div className="py-6">
@@ -48,7 +35,7 @@ export default async function ClubsPage() {
       <p className="text-gray-500 text-sm mb-6">
         {clubs.length} Golfclubs in Deutschland
       </p>
-      <ClubsClient clubs={clubs} savedClubIds={savedClubIds} />
+      <ClubsClient clubs={clubs} />
     </div>
   );
 }

@@ -1,16 +1,25 @@
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { GolfClub, Tournament } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import TurnierDetailClient from './client';
 
-export const revalidate = 3600;
+// Thousands of these URLs are in the sitemap, and every stale crawler hit costs
+// a regeneration. Tournament rows only change when the scraper runs.
+export const revalidate = 86400;
+
+// No params at build time — these pages are generated on first request and then
+// cached for `revalidate`. Without this, Next treats the segment as fully
+// dynamic and re-renders it for every visitor and every crawler.
+export function generateStaticParams() {
+  return [];
+}
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 async function getTournament(id: string) {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data: tournament } = await supabase
     .from('tournaments')
     .select('*')
@@ -77,21 +86,6 @@ export default async function TurnierDetailPage({ params }: PageProps) {
 
   const { tournament: t, club } = result;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const isLoggedIn = !!user;
-
-  let initialSaved = false;
-  if (user) {
-    const { data: savedRow } = await supabase
-      .from('saved_tournaments')
-      .select('tournament_id')
-      .eq('user_id', user.id)
-      .eq('tournament_id', id)
-      .maybeSingle();
-    initialSaved = !!savedRow;
-  }
-
   // JSON-LD structured data for Google
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -146,13 +140,7 @@ export default async function TurnierDetailPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <TurnierDetailClient
-        tournament={t}
-        club={club}
-        isLoggedIn={isLoggedIn}
-        userId={user?.id ?? null}
-        initialSaved={initialSaved}
-      />
+      <TurnierDetailClient tournament={t} club={club} />
     </div>
   );
 }

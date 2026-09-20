@@ -4,29 +4,25 @@ import { useMemo, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Tournament, GolfClub } from '@/lib/types';
 import { PAGE_SIZE } from '@/lib/constants';
-import { ScoringProfile, scoreTournaments } from '@/lib/recommendations';
+import { scoreTournaments } from '@/lib/recommendations';
+import { useViewer } from '@/lib/use-viewer';
 import TournamentCard from './tournament-card';
 import { EmptyState } from './empty-state';
 
 interface Props {
   tournaments: Tournament[];
   clubs: Record<string, GolfClub>;
-  savedTournamentIds: Set<string>;
-  userId: string | null;
-  scoringProfile?: ScoringProfile | null;
-  savedClubIds?: Set<string>;
+  /** Match-score sorting only makes sense on the full tournament list. */
+  allowScoreSort?: boolean;
 }
 
-export default function TournamentList({
-  tournaments,
-  clubs,
-  savedTournamentIds,
-  userId,
-  scoringProfile,
-  savedClubIds,
-}: Props) {
+export default function TournamentList({ tournaments, clubs, allowScoreSort = false }: Props) {
+  const { profile, savedClubIds } = useViewer();
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [sortBy, setSortBy] = useState('date_asc');
+
+  const scoringProfile = allowScoreSort ? profile : null;
+  const savedClubIdSet = useMemo(() => new Set(savedClubIds), [savedClubIds]);
 
   // Match-score sort is only available to logged-in users with a home club set.
   const canScore = !!(scoringProfile?.home_club_id);
@@ -34,7 +30,7 @@ export default function TournamentList({
   const sorted = useMemo(() => {
     if (sortBy === 'score' && canScore && scoringProfile) {
       // scoreTournaments returns a sorted ScoredTournament[]
-      return scoreTournaments(tournaments, scoringProfile, clubs, savedClubIds ?? new Set());
+      return scoreTournaments(tournaments, scoringProfile, clubs, savedClubIdSet);
     }
     return [...tournaments].sort((a, b) => {
       if (sortBy === 'date_asc') return a.date_start.localeCompare(b.date_start);
@@ -42,7 +38,7 @@ export default function TournamentList({
       if (sortBy === 'fee_asc') return (a.entry_fee || 0) - (b.entry_fee || 0);
       return 0;
     });
-  }, [tournaments, sortBy, canScore, scoringProfile, clubs, savedClubIds]);
+  }, [tournaments, sortBy, canScore, scoringProfile, clubs, savedClubIdSet]);
 
   const visible = sorted.slice(0, displayCount);
   const hasMore = sorted.length > displayCount;
@@ -80,8 +76,6 @@ export default function TournamentList({
               key={t.id}
               tournament={t}
               club={clubs[t.club_id || '']}
-              userId={userId}
-              initialSaved={savedTournamentIds.has(t.id)}
             />
           ))}
         </div>

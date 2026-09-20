@@ -1,10 +1,14 @@
 import { MetadataRoute } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { BUNDESLAENDER } from '@/lib/regions';
 import { CITIES } from '@/lib/cities';
 
+// ~7000 URLs off two large queries. Crawlers refetch this often, so rebuild it
+// six-hourly instead of per request.
+export const revalidate = 21600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const today = new Date().toISOString().split('T')[0];
 
   // Fetch tournament IDs and club IDs in parallel

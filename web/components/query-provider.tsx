@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createClient } from '@/lib/supabase/client';
+import { VIEWER_QUERY_KEY } from '@/lib/use-viewer';
 
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * ONE_HOUR;
@@ -38,6 +40,12 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
       persister,
       maxAge: ONE_DAY,
       buster: CACHE_BUSTER,
+      dehydrateOptions: {
+        // The viewer's saved clubs and tournaments must not outlive the session
+        // in localStorage — on a shared device the next person would inherit
+        // them. Public tournament data is still persisted.
+        shouldDehydrateQuery: (query) => query.queryKey[0] !== VIEWER_QUERY_KEY[0],
+      },
     });
 
     // Warm the cache for /turniere as soon as the app boots.
@@ -51,8 +59,16 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
       staleTime: ONE_HOUR,
     });
 
+    // Signing in or out changes who the viewer is, so drop the cached answer
+    // and let the next render fetch it again.
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries({ queryKey: VIEWER_QUERY_KEY });
+    });
+
     return () => {
       unsubscribe();
+      subscription.unsubscribe();
     };
   }, [queryClient]);
 

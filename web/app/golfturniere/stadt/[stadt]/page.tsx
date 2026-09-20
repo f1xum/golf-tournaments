@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MapPin, Building2, CalendarDays, ArrowRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { Tournament } from '@/lib/types';
 import { todayISO } from '@/lib/utils';
 import { CITIES, cityBySlug } from '@/lib/cities';
@@ -26,7 +26,7 @@ async function getData(slug: string) {
   const city = cityBySlug(slug);
   if (!city) return null;
 
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const today = todayISO();
 
   const allClubs = await loadAllClubs(supabase);
@@ -166,8 +166,6 @@ export default async function StadtPage({ params }: PageProps) {
                 key={t.id}
                 tournament={t}
                 club={clubById.get(t.club_id || '')}
-                userId={null}
-                initialSaved={false}
               />
             ))}
           </div>
