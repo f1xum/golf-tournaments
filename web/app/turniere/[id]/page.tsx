@@ -4,8 +4,10 @@ import { notFound } from 'next/navigation';
 import TurnierDetailClient from './client';
 
 // Thousands of these URLs are in the sitemap, and every stale crawler hit costs
-// a regeneration. Tournament rows only change when the scraper runs.
-export const revalidate = 86400;
+// a regeneration — crawlers alone kept this route rendering ~1000×/day at a
+// one-day window. Tournament details rarely change after they are published,
+// and "past" is computed in the browser, so a week is safe.
+export const revalidate = 604800;
 
 // No params at build time — these pages are generated on first request and then
 // cached for `revalidate`. Without this, Next treats the segment as fully

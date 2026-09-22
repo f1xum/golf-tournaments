@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [tournamentsRes, clubsRes] = await Promise.all([
     supabase
       .from('tournaments')
-      .select('id,date_start')
+      .select('id')
       .gte('date_start', today)
       .order('date_start', { ascending: true })
       .limit(5000),
@@ -58,10 +58,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // Tournament pages
+  // Detail pages carry no lastModified. Stamping them with new Date() told
+  // Google all ~1700 had changed every six hours, which drove a full recrawl —
+  // and a function render per URL. updated_at is no better: the scrapers upsert
+  // every row daily and the trigger bumps it whether or not anything changed.
   const tournamentPages: MetadataRoute.Sitemap = tournaments.map((t) => ({
     url: `${baseUrl}/turniere/${t.id}`,
-    lastModified: new Date(),
     changeFrequency: 'daily' as const,
     priority: 0.7,
   }));
@@ -69,7 +71,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Club pages
   const clubPages: MetadataRoute.Sitemap = clubs.map((c) => ({
     url: `${baseUrl}/clubs/${c.id}`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.6,
   }));
